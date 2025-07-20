@@ -30,10 +30,6 @@
       "autoApprove": [],
       "disabled": false
     },
-    "strands": {
-      "command": "uvx",
-      "args": ["strands-agents-mcp-server"]
-    },
     "awslabs.aws-pricing-mcp-server": {
       "command": "uvx",
       "args": [
@@ -46,6 +42,10 @@
       },
       "disabled": false,
       "autoApprove": []
+    },
+    "strands": {
+      "command": "uvx",
+      "args": ["strands-agents-mcp-server"]
     }
   }
 }
