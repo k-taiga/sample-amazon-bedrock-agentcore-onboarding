@@ -15,11 +15,15 @@ Key Features:
 
 import os
 import logging
+import traceback
+import boto3
+from contextlib import contextmanager
+from typing import Generator, AsyncGenerator, Optional
 from strands import Agent, tool
 from strands.tools.mcp import MCPClient
 from mcp import stdio_client, StdioServerParameters
 from bedrock_agentcore.tools.code_interpreter_client import CodeInterpreter
-from config import (
+from cost_estimator_agent.config import (
     SYSTEM_PROMPT,
     COST_ESTIMATION_PROMPT,
     DEFAULT_MODEL,
@@ -70,31 +74,78 @@ class AWSCostEstimatorAgent:
             self.code_interpreter.start()
             logger.info("✅ AgentCore Code Interpreter session started successfully")
         except Exception as e:
-            logger.error(f"❌ Failed to setup Code Interpreter: {e}")
+            logger.exception(f"❌ Failed to setup Code Interpreter: {e}")
             raise
     
+    def _get_aws_credentials(self) -> dict:
+        """
+        Get current AWS credentials (including session token if present)
+        
+        Returns:
+            Dict with current AWS credentials including session token
+        """
+        try:
+            logger.info("Getting current AWS credentials...")
+            
+            # Create session to get current credentials
+            session = boto3.Session()
+            credentials = session.get_credentials()
+            
+            if credentials is None:
+                raise Exception("No AWS credentials found")
+            
+            # Verify credentials work by getting caller identity
+            sts_client = boto3.client('sts', region_name=self.region)
+            identity = sts_client.get_caller_identity()
+            logger.info(f"Using AWS identity: {identity.get('Arn', 'Unknown')}")
+            
+            # Get frozen credentials to access them
+            frozen_creds = credentials.get_frozen_credentials()
+            
+            credential_dict = {
+                "AWS_ACCESS_KEY_ID": frozen_creds.access_key,
+                "AWS_SECRET_ACCESS_KEY": frozen_creds.secret_key,
+                "AWS_REGION": self.region
+            }
+            
+            # Add session token if available (EC2 instance role provides this)
+            if frozen_creds.token:
+                credential_dict["AWS_SESSION_TOKEN"] = frozen_creds.token
+                logger.info("✅ Using AWS credentials with session token (likely from EC2 instance role)")
+            else:
+                logger.info("✅ Using AWS credentials without session token")
+                
+            return credential_dict
+            
+        except Exception as e:
+            logger.exception(f"❌ Failed to get AWS credentials: {e}")
+            raise
+
     def _setup_aws_pricing_client(self) -> MCPClient:
-        """Setup AWS Pricing MCP Client following Strands best practices"""
+        """Setup AWS Pricing MCP Client with current AWS credentials"""
         try:
             logger.info("Setting up AWS Pricing MCP Client...")
-            aws_profile = os.environ.get("AWS_PROFILE", "default")
-            logger.info(f"Using AWS profile: {aws_profile}")
+            
+            # Get current credentials (including session token if available)
+            aws_credentials = self._get_aws_credentials()
+            
+            # Prepare environment variables for MCP client
+            env_vars = {
+                "FASTMCP_LOG_LEVEL": "ERROR",
+                **aws_credentials  # Include all AWS credentials
+            }
             
             aws_pricing_client = MCPClient(
                 lambda: stdio_client(StdioServerParameters(
                     command="uvx", 
                     args=["awslabs.aws-pricing-mcp-server@latest"],
-                    env={
-                        "FASTMCP_LOG_LEVEL": "ERROR",
-                        "AWS_PROFILE": aws_profile,
-                        "AWS_REGION": self.region
-                    }
+                    env=env_vars
                 ))
             )
-            logger.info("✅ AWS Pricing MCP Client setup successfully")
+            logger.info("✅ AWS Pricing MCP Client setup successfully with AWS credentials")
             return aws_pricing_client
         except Exception as e:
-            logger.error(f"❌ Failed to setup AWS Pricing MCP Client: {e}")
+            logger.exception(f"❌ Failed to setup AWS Pricing MCP Client: {e}")
             raise
     
     
@@ -140,30 +191,27 @@ class AWSCostEstimatorAgent:
             return result_text
             
         except Exception as e:
-            error_msg = f"❌ Calculation failed: {e}"
-            logger.error(error_msg)
-            return error_msg
+            logger.exception(f"❌ Calculation failed: {e}")
 
-    def estimate_costs(self, architecture_description: str) -> str:
+    @contextmanager
+    def _estimation_agent(self) -> Generator[Agent, None, None]:
         """
-        Estimate costs for a given architecture description
+        Context manager for cost estimation components
         
-        Args:
-            architecture_description: Description of the system to estimate
+        Yields:
+            Agent with all tools configured and resources properly managed
             
-        Returns:
-            Cost estimation results
-        """
-        logger.info("🚀 Initializing AWS Cost Estimation Agent...")
-        logger.info("📊 Starting cost estimation...")
-        logger.info(f"Architecture: {architecture_description}")
-        
+        Ensures:
+            Proper cleanup of Code Interpreter and MCP client resources
+        """        
         try:
+            logger.info("🚀 Initializing AWS Cost Estimation Agent...")
+            
             # Setup components in order
             self._setup_code_interpreter()
             aws_pricing_client = self._setup_aws_pricing_client()
-
-            # Create agent with persistent MCP context for this request
+            
+            # Create agent with persistent MCP context
             with aws_pricing_client:
                 pricing_tools = aws_pricing_client.list_tools_sync()
                 logger.info(f"Found {len(pricing_tools)} AWS pricing tools")
@@ -176,6 +224,30 @@ class AWSCostEstimatorAgent:
                     system_prompt=SYSTEM_PROMPT
                 )
                 
+                yield agent
+                
+        except Exception as e:
+            logger.exception(f"❌ Component setup failed: {e}")
+            raise
+        finally:
+            # Ensure cleanup happens regardless of success/failure
+            self.cleanup()
+
+    def estimate_costs(self, architecture_description: str) -> str:
+        """
+        Estimate costs for a given architecture description
+        
+        Args:
+            architecture_description: Description of the system to estimate
+            
+        Returns:
+            Cost estimation results as concatenated string
+        """
+        logger.info("📊 Starting cost estimation...")
+        logger.info(f"Architecture: {architecture_description}")
+        
+        try:
+            with self._estimation_agent() as agent:
                 # Use the agent to process the cost estimation request
                 prompt = COST_ESTIMATION_PROMPT.format(
                     architecture_description=architecture_description
@@ -186,13 +258,52 @@ class AWSCostEstimatorAgent:
                 return result.message["content"] if result.message else "No estimation result."
 
         except Exception as e:
-            error_msg = f"❌ Cost estimation failed: {e}"
-            logger.error(error_msg)
-            return error_msg
-        finally:
-            # Clean up resources
-            self.cleanup()
-    
+            logger.exception(f"❌ Cost estimation failed: {e}")
+            error_details = traceback.format_exc()
+            return f"❌ Cost estimation failed: {e}\n\nStacktrace:\n{error_details}"
+
+    async def estimate_costs_stream(self, architecture_description: str) -> AsyncGenerator[dict, None]:
+        """
+        Estimate costs for a given architecture description with streaming response
+        
+        Args:
+            architecture_description: Description of the system to estimate
+            
+        Yields:
+            Streaming events from the agent response
+            
+        Example usage:
+            async for event in agent.estimate_costs_stream(description):
+                if "data" in event:
+                    print(event["data"], end="", flush=True)
+        """
+        logger.info("📊 Starting streaming cost estimation...")
+        logger.info(f"Architecture: {architecture_description}")
+        
+        try:
+            with self._estimation_agent() as agent:
+                # Use the agent to process the cost estimation request with streaming
+                prompt = COST_ESTIMATION_PROMPT.format(
+                    architecture_description=architecture_description
+                )
+                
+                # Stream the agent response
+                agent_stream = agent.stream_async(prompt)
+                
+                logger.info("🔄 Streaming cost estimation response...")
+                async for event in agent_stream:                    
+                    yield event
+                
+                logger.info("✅ Streaming cost estimation completed")
+
+        except Exception as e:
+            logger.exception(f"❌ Streaming cost estimation failed: {e}")
+            # Yield error event in streaming format
+            yield {
+                "error": True,
+                "data": f"❌ Streaming cost estimation failed: {e}\n\nStacktrace:\n{traceback.format_exc()}"
+            }
+
     def cleanup(self) -> None:
         """Clean up resources"""
         logger.info("🧹 Cleaning up resources...")

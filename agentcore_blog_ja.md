@@ -240,35 +240,32 @@ AgentCore Code Interpreter は `from bedrock_agentcore.tools.code_interpreter_cl
 
 開発したエージェントをデプロイすることで、アプリケーションの中から呼び出したり、開発者同士で共用することが出来ます。今回のエージェントなら、例えばクラウド構築の相談サービスを行っていれば呼び出しを行うことで概算見積りを顧客に提示できるかもしれません。
 
-[AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agents-tools-runtime.html)は、AI エージェントをホスティングするためのサービスです。このサービスは、専用microVMを通じて真のセッション分離を実装し、ユーザーセッション間の完全な分離を確保し、セッション間のデータ汚染を防ぎます。
+[AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agents-tools-runtime.html)は、AI エージェントをホスティングするためのサービスです。このサービスは、専用の microVM により AI エージェントごとにセッションを分離しセッション間のデータ汚染を防ぐことが出来ます。[こちらのドキュメント](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/getting-started-custom.html) を見るとわかりますが、中身は FastAPI 等で作成した API サーバーをコンテナに固めて ECR に登録し、AgentCore Runtime に登録します。セッションは同一 id を指定することで継続することもでき、15 分の idle 状態または 8 時間の稼働上限にかからない限り処理を継続することが出来ます (詳細 : [Use isolated sessions for agents](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-sessions.html))。
 
-デプロイメントプロセスは、[AgentCore Runtime SDK](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agents-tools-runtime.html)を使用してローカルエージェントコードをパッケージ化することから始まります。ランタイム設定は、リソース要件、タイムアウト設定、価格データアクセスのためのカスタムMCPサーバーとの統合ポイントを指定します。
+
+先ほどの AI エージェントを AgentCore Runtime にデプロイしてみましょう。必要な作業は 3 つです。
+
+1. `bedrock_agentcore` を使用し Agent を起動する関数に対し entrypoint のアノテーションを付与する
+2. AgentCore Runtime の実行に必要な IAM ロールを  [Permissions for AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-permissions.html) に従い準備する
+3. `bedrock_agentcore_starter_toolkit` で AI エージェントのコードをコンテナに固めて登録、起動する
+
+では、手順通り実装していきましょう。今回用意した `register_agent.py` は、`prepare` 関数により任意の AI エージェントを実装したスクリプトファイルをベースにデプロイ用のディレクトリを作り、アノテーションを追加したファイルと `requirements.txt` を配置、さらにロールを作成します。`deploy` でエージェントをデプロイし `invoke` で起動します。`deploy` の実装は次の通りです。
 
 ```python
-from amazon_bedrock_agentcore import AgentCoreRuntime
-from amazon_bedrock_agentcore.config import RuntimeConfig
-
-runtime_config = RuntimeConfig(
-    agent_name="cost-estimation-agent",
-    memory_mb=2048,
-    timeout_seconds=300,
-    environment_variables={
-        "MCP_SERVER_ENDPOINT": "https://pricing-mcp.example.com",
-        "AWS_REGION": "us-east-1"
-    },
-    vpc_config={
-        "subnet_ids": ["subnet-12345", "subnet-67890"],
-        "security_group_ids": ["sg-abcdef"]
-    }
-)
-
-runtime = AgentCoreRuntime(config=runtime_config)
-deployment_result = runtime.deploy()
+[[Code of `deploy`]]
 ```
 
-従量課金制の価格モデルは、事前に割り当てられた容量ではなく、実際に消費されたリソースに対してのみ課金するため、コストを最適化するために使用パターンの慎重な監視が必要です。[AWSコストと使用状況レポート](https://docs.aws.amazon.com/cur/latest/userguide/what-is-cur.html)は、AgentCore Runtimeの消費パターンに関する詳細な洞察を提供し、使用状況分析を通じてコスト最適化を可能にします。
+`invoke` の実装は次の通りです。
 
-ネットワーク接続には、エージェントがセキュリティ境界を維持しながら外部APIにアクセスできるように、[VPCエンドポイント](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints.html)の慎重な設定が必要です。実装は、セキュリティ、信頼性、コスト最適化のための[AWS Well-Architected Framework](https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html)の原則に従います。
+```python
+[[Code of `invokeB`]]
+```
+
+結果、次のような出力が得られます。
+
+**本セクションのまとめ**
+
+* **AgentCore Runtime により継続的かつ安全なコンテキストが維持できる！** : いままで AI エージェントをデプロイする先は Fargate や AWS Lambda がありましたが、AI エージェントとのインタラクティブなやり取りで必要になるひつようになるセキュアなコード実行環境を提供する Code Interpreter、ブラウザ実行環境を提供する Browser はローカル/クラウド関わらずセキュアな AI エージェントの実行を可能にする
 
 ## 🛡️ : AI エージェントの利用に認証をかけて公開する : [AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html)
 

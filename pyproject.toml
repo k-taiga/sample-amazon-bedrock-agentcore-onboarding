@@ -12,3 +12,7 @@ dependencies = [
     "strands-agents>=1.0.1",
     "strands-agents-tools>=0.2.1",
 ]
+
+[tool.pyright]
+typeCheckingMode = "off"
+ignore = ["*"]

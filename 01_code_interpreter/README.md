@@ -33,7 +33,7 @@ The agent takes a description of a system architecture and:
 
 ```bash
 # Run the cost estimation agent
-uv run python 01-code-interpreter/cost_estimator_agent.py
+uv run python 01_code_interpreter/cost_estimator_agent/cost_estimator_agent.py
 ```
 
 ## Testing
@@ -41,7 +41,7 @@ uv run python 01-code-interpreter/cost_estimator_agent.py
 Run the simple test to see the agent in action:
 
 ```bash
-uv run 01-code-interpreter/simple_test.py
+uv run python 01_code_interpreter/test_cost_estimator_agent.py
 ```
 
 ### What the Test Does
