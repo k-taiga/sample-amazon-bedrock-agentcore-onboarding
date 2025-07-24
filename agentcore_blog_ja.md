@@ -26,8 +26,11 @@ AI エージェントの実装は [Strands Agents](https://github.com/strands-ag
 
 Strands Agents による実装は次の通りです。プロンプトは長いので `config.py` に外だししています。
 
+[01_code_interpreter/cost_estimator_agent/cost_estimator_agent.py
+](https://github.com/icoxfog417/sample-amazon-bedrock-agentcore-onboarding/blob/main/01_code_interpreter/cost_estimator_agent/cost_estimator_agent.py)
+
 ```python
-01_code_interpreter/cost_estimator_agent/cost_estimator_agent.py
+※上記コードから抜粋して紹介
 ```
 
 AgentCore Code Interpreter は `from bedrock_agentcore.tools.code_interpreter_client import CodeInterpreter` から利用します。利用の方法は次の通りです。
@@ -73,6 +76,11 @@ AgentCore Code Interpreter は `from bedrock_agentcore.tools.code_interpreter_cl
 │   ├── invoke.py             # AgentCore Runtime 用のエントリーポイント
 │   └── requirements.txt      # 依存関係リスト
 └── prepare_agent.py          # デプロイ準備用のスクリプト
+```
+
+[02_runtime/prepare_agent.py](https://github.com/icoxfog417/sample-amazon-bedrock-agentcore-onboarding/blob/main/02_runtime/prepare_agent.py) 
+```python
+上記実装から抜粋して実装を紹介
 ```
 
 今回注意する実装のポイントは以下です。
