@@ -27,199 +27,7 @@ AI エージェントの実装は [Strands Agents](https://github.com/strands-ag
 Strands Agents による実装は次の通りです。プロンプトは長いので `config.py` に外だししています。
 
 ```python
-import os
-import logging
-from strands import Agent, tool
-from strands.tools.mcp import MCPClient
-from mcp import stdio_client, StdioServerParameters
-from bedrock_agentcore.tools.code_interpreter_client import CodeInterpreter
-from config import (
-    SYSTEM_PROMPT,
-    COST_ESTIMATION_PROMPT,
-    DEFAULT_MODEL,
-    DEFAULT_REGION,
-    LOG_FORMAT
-)
-
-# Configure comprehensive logging for debugging and monitoring
-logging.basicConfig(
-    level=logging.INFO,
-    format=LOG_FORMAT,
-    handlers=[logging.StreamHandler()]
-)
-
-# Enable Strands debug logging for detailed agent behavior
-logging.getLogger("strands").setLevel(logging.DEBUG)
-
-logger = logging.getLogger(__name__)
-
-
-class AWSCostEstimatorAgent:
-    """
-    AWS Cost Estimation Agent using AgentCore Code Interpreter
-    
-    This agent combines:
-    - MCP pricing tools (automatically available) for real-time pricing data
-    - AgentCore Code Interpreter for secure calculations
-    - Strands Agents framework for clean implementation
-    """
-    
-    def __init__(self, region: str = DEFAULT_REGION):
-        """
-        Initialize the cost estimation agent
-        
-        Args:
-            region: AWS region for AgentCore Code Interpreter
-        """
-        self.region = region
-        self.code_interpreter = None
-        
-        logger.info(f"Initializing AWS Cost Estimator Agent in region: {region}")
-        
-    def _setup_code_interpreter(self) -> None:
-        """Setup AgentCore Code Interpreter for secure calculations"""
-        try:
-            logger.info("Setting up AgentCore Code Interpreter...")
-            self.code_interpreter = CodeInterpreter(self.region)
-            self.code_interpreter.start()
-            logger.info("✅ AgentCore Code Interpreter session started successfully")
-        except Exception as e:
-            logger.error(f"❌ Failed to setup Code Interpreter: {e}")
-            raise
-    
-    def _setup_aws_pricing_client(self) -> MCPClient:
-        """Setup AWS Pricing MCP Client following Strands best practices"""
-        try:
-            logger.info("Setting up AWS Pricing MCP Client...")
-            aws_profile = os.environ.get("AWS_PROFILE", "default")
-            logger.info(f"Using AWS profile: {aws_profile}")
-            
-            aws_pricing_client = MCPClient(
-                lambda: stdio_client(StdioServerParameters(
-                    command="uvx", 
-                    args=["awslabs.aws-pricing-mcp-server@latest"],
-                    env={
-                        "FASTMCP_LOG_LEVEL": "ERROR",
-                        "AWS_PROFILE": aws_profile,
-                        "AWS_REGION": self.region
-                    }
-                ))
-            )
-            logger.info("✅ AWS Pricing MCP Client setup successfully")
-            return aws_pricing_client
-        except Exception as e:
-            logger.error(f"❌ Failed to setup AWS Pricing MCP Client: {e}")
-            raise
-    
-    
-    @tool
-    def execute_cost_calculation(self, calculation_code: str, description: str = "") -> str:
-        """
-        Execute cost calculations using AgentCore Code Interpreter
-        
-        Args:
-            calculation_code: Python code for cost calculations
-            description: Description of what the calculation does
-            
-        Returns:
-            Calculation results as string
-        """
-        if not self.code_interpreter:
-            return "❌ Code Interpreter not initialized"
-            
-        try:
-            logger.info(f"🧮 Executing calculation: {description}")
-            logger.debug(f"Code to execute:\n{calculation_code}")
-            
-            # Execute code in secure AgentCore sandbox
-            response = self.code_interpreter.invoke("executeCode", {
-                "language": "python",
-                "code": calculation_code
-            })
-            
-            # Extract results from response stream
-            results = []
-            for event in response.get("stream", []):
-                if "result" in event:
-                    result = event["result"]
-                    if "content" in result:
-                        for content_item in result["content"]:
-                            if content_item.get("type") == "text":
-                                results.append(content_item["text"])
-            
-            result_text = "\n".join(results)
-            logger.info("✅ Calculation completed successfully")
-            logger.debug(f"Calculation result: {result_text}")
-            
-            return result_text
-            
-        except Exception as e:
-            error_msg = f"❌ Calculation failed: {e}"
-            logger.error(error_msg)
-            return error_msg
-
-    def estimate_costs(self, architecture_description: str) -> str:
-        """
-        Estimate costs for a given architecture description
-        
-        Args:
-            architecture_description: Description of the system to estimate
-            
-        Returns:
-            Cost estimation results
-        """
-        logger.info("🚀 Initializing AWS Cost Estimation Agent...")
-        logger.info("📊 Starting cost estimation...")
-        logger.info(f"Architecture: {architecture_description}")
-        
-        try:
-            # Setup components in order
-            self._setup_code_interpreter()
-            aws_pricing_client = self._setup_aws_pricing_client()
-
-            # Create agent with persistent MCP context for this request
-            with aws_pricing_client:
-                pricing_tools = aws_pricing_client.list_tools_sync()
-                logger.info(f"Found {len(pricing_tools)} AWS pricing tools")
-                
-                # Create agent with both execute_cost_calculation and MCP pricing tools
-                all_tools = [self.execute_cost_calculation] + pricing_tools
-                agent = Agent(
-                    model=DEFAULT_MODEL,
-                    tools=all_tools,
-                    system_prompt=SYSTEM_PROMPT
-                )
-                
-                # Use the agent to process the cost estimation request
-                prompt = COST_ESTIMATION_PROMPT.format(
-                    architecture_description=architecture_description
-                )
-                result = agent(prompt)
-                
-                logger.info("✅ Cost estimation completed")
-                return result.message["content"] if result.message else "No estimation result."
-
-        except Exception as e:
-            error_msg = f"❌ Cost estimation failed: {e}"
-            logger.error(error_msg)
-            return error_msg
-        finally:
-            # Clean up resources
-            self.cleanup()
-    
-    def cleanup(self) -> None:
-        """Clean up resources"""
-        logger.info("🧹 Cleaning up resources...")
-        
-        if self.code_interpreter:
-            try:
-                self.code_interpreter.stop()
-                logger.info("✅ Code Interpreter session stopped")
-            except Exception as e:
-                logger.warning(f"⚠️ Error stopping Code Interpreter: {e}")
-            finally:
-                self.code_interpreter = None
-
+01_code_interpreter/cost_estimator_agent/cost_estimator_agent.py
 ```
 
 AgentCore Code Interpreter は `from bedrock_agentcore.tools.code_interpreter_client import CodeInterpreter` から利用します。利用の方法は次の通りです。
@@ -240,32 +48,115 @@ AgentCore Code Interpreter は `from bedrock_agentcore.tools.code_interpreter_cl
 
 開発したエージェントをデプロイすることで、アプリケーションの中から呼び出したり、開発者同士で共用することが出来ます。今回のエージェントなら、例えばクラウド構築の相談サービスを行っていれば呼び出しを行うことで概算見積りを顧客に提示できるかもしれません。
 
-[AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agents-tools-runtime.html)は、AI エージェントをホスティングするためのサービスです。このサービスは、専用の microVM により AI エージェントごとにセッションを分離しセッション間のデータ汚染を防ぐことが出来ます。[こちらのドキュメント](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/getting-started-custom.html) を見るとわかりますが、中身は FastAPI 等で作成した API サーバーをコンテナに固めて ECR に登録し、AgentCore Runtime に登録します。セッションは同一 id を指定することで継続することもでき、15 分の idle 状態または 8 時間の稼働上限にかからない限り処理を継続することが出来ます (詳細 : [Use isolated sessions for agents](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-sessions.html))。
+[AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agents-tools-runtime.html)は、AI エージェントを安全かつスケーラブルにホスティングするためのサービスで次の 4 つの特徴があります。
 
+* Serverless : 稼働時間での課金で、「稼働時間」には LLM の応答待ち時間は含まない
+* Isolated : 各 AI エージェントのセッションは専用の microVM により隔離されている (詳細 : [Use isolated sessions for agents](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-sessions.html))
+* Long Running : 15 分の idle or 8 時間の稼働上限まで処理を継続できる
+* Framework / Language Agnostic : AI エージェントの実装言語やフレームワークを問わない
 
-先ほどの AI エージェントを AgentCore Runtime にデプロイしてみましょう。必要な作業は 3 つです。
+実体はコンテナをホスティングする形式をとっています。コンテナの中身は、[ドキュメント](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/getting-started-custom.html) からわかる通り FastAPI 等で作成した API サーバーをコンテナに固めていることを想定しています。期待する API が実装されていればどんな方式で実装されていても良く、このため "Framework / Language Agnostic" となっています。コンテナは Amazon Elastic Container Registry (ECR) に登録し、AgentCore Runtime へ紐付けを行います。
 
-1. `bedrock_agentcore` を使用し Agent を起動する関数に対し entrypoint のアノテーションを付与する
+実際に試してみましょう。必要な作業は 3 つです。
+
+1. `bedrock_agentcore` を使用し Agent を起動する関数に対し entrypoint のアノテーションを付与する。
+   * 実体としては `0.0.0.0` ホストの `8080` ポートで `/entrypoint` と `/ping` のエンドポイントが実装されていれば OK
 2. AgentCore Runtime の実行に必要な IAM ロールを  [Permissions for AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-permissions.html) に従い準備する
 3. `bedrock_agentcore_starter_toolkit` で AI エージェントのコードをコンテナに固めて登録、起動する
 
-では、手順通り実装していきましょう。今回用意した `register_agent.py` は、`prepare` 関数により任意の AI エージェントを実装したスクリプトファイルをベースにデプロイ用のディレクトリを作り、アノテーションを追加したファイルと `requirements.txt` を配置、さらにロールを作成します。`deploy` でエージェントをデプロイし `invoke` で起動します。`deploy` の実装は次の通りです。
+では、手順通り実装していきましょう。今回用意した `prepare_agent.py` は、先ほど作成した AWS コスト計算エージェントのディレクトリを `deployment` にコピーし必要な IAM 権限を作成します。`deployment` ディレクトリには、entrypoint となる `invoke.py` と必要な依存関係を記載した `requirements.txt` を用意しています。
 
-```python
-[[Code of `deploy`]]
+```
+02_runtime/
+├── deployment/
+│   ├── cost_estimator_agent/ # AI エージェントの実装
+│   ├── invoke.py             # AgentCore Runtime 用のエントリーポイント
+│   └── requirements.txt      # 依存関係リスト
+└── prepare_agent.py          # デプロイ準備用のスクリプト
 ```
 
-`invoke` の実装は次の通りです。
+今回注意する実装のポイントは以下です。
 
-```python
-[[Code of `invokeB`]]
+* IAM Role には、使用する Code Interpreter の権限も必要です ([詳細](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/code-interpreter-resource-session-management.html))。
+* `requirements.txt` には `uv` が必要です。これは [AWS Pricing MCP Server](https://awslabs.github.io/mcp/servers/aws-pricing-mcp-server) を `uvx` で使用するためです。
+* AWS Pricing MCP Server を利用するには AWS Profile が必要です。AgentCore Runtime 上には `default` のプロファイルがなかったので、docker の設定を参考に AWS STS で ACCESS_KEY / SECRET_ACCESS_KEY / SESSION_TOKEN を発行して接続しています(`01_code_interpreter/cost_estimator_agent._get_aws_credentials` で実装) 。この方式は今回の MCP に限らず AWS CLI の実行などに応用できると思います
+
+`prepare_agent.py` を実行すると次の出力が得られます。ガイドにある通り、[Bedrock AgentCore Starter Toolkit](https://github.com/aws/bedrock-agentcore-starter-toolkit/tree/main) を使用し AgentCore Runtime に登録します。
+
+```bash
+Preparing agent from: ../01_code_interpreter/cost_estimator_agent
+
+✓ Agent preparation completed successfully!
+
+Agent Name: cost_estimator_agent
+Deployment Directory: deployment
+Region: us-east-1
+
+📋 Next Steps:
+
+1. Configure the agent runtime:
+   agentcore configure --entrypoint deployment/invoke.py --name cost_estimator_agent --execution-role arn:aws:iam::000000000000:role/AgentCoreRole-cost_estimator_agent 
+--requirements-file deployment/requirements.txt --disable-otel --region us-east-1 
+
+2. Launch the agent:
+   agentcore launch
+
+3. Test your agent:
+   agentcore invoke '{"prompt": "I would like to connect t3.micro. How much does it cost?"}'
+
+💡 Tip: You can copy and paste the commands above directly into your terminal.
 ```
 
-結果、次のような出力が得られます。
+:::note info
+`--disable-otel` を指定しているのは、2025/7 時点では Observability を行うための Distro が依存している Open Telemetry のパッケージで予期しない型変換が行われ Strands Agents 側でエラーが発生するためです。解消され次第更新します。
+:::
+
+順番に `configure` 、`launch` と実行し、`invoke` で Runtime にリクエストを送り実行を確認することが出来ます。
+
+:::note info
+`invoke` で送る JSON データの形式は entrypoint の実装の影響を受けます。今回は `invoke.py` が `payload.get("prompt")` でパラメータを取得しているため `{ "prompt" : "XXXX"}` の形式で送付しています。
+:::
+
+以下が `invoke` を行った時の結果例です。
+
+```
+$ agentcore invoke '{"prompt": "I would like to connect t3.micro from my PC. How much does it cost?"}'
+Payload:
+{
+  "prompt": "I would like to connect t3.micro from my PC. How much does it cost?"
+}
+Invoking BedrockAgentCore agent 'cost_estimator_agent' via cloud endpoint
+Session ID: a86335a1-7e4b-452c-9f9a-476637635acf
+
+Response:
+{
+  "ResponseMetadata": {
+    "RequestId": "b038ec30-09fc-42cf-883f-6984b4405b3e",
+    "HTTPStatusCode": 200,
+    "HTTPHeaders": {
+      "date": "Thu, 24 Jul 2025 13:09:42 GMT",
+      "content-type": "application/json",
+      "transfer-encoding": "chunked",
+      "connection": "keep-alive",
+      "x-amzn-requestid": "b038ec30-09fc-42cf-883f-6984b4405b3e",
+      "baggage": "Self=1-68823065-27c3f46807def2de68fdbd94,session.id=a86335a1-7e4b-452c-9f9a-476637635acf",
+      "x-amzn-bedrock-agentcore-runtime-session-id": "a86335a1-7e4b-452c-9f9a-476637635acf",
+      "x-amzn-trace-id": "Root=1-68823065-44f08e6a0a58e9525c23fa03;Self=1-68823065-27c3f46807def2de68fdbd94"
+    },
+    "RetryAttempts": 2
+  },
+  "runtimeSessionId": "a86335a1-7e4b-452c-9f9a-476637635acf",
+  "traceId": "Root=1-68823065-44f08e6a0a58e9525c23fa03;Self=1-68823065-27c3f46807def2de68fdbd94",
+  "baggage": "Self=1-68823065-27c3f46807def2de68fdbd94,session.id=a86335a1-7e4b-452c-9f9a-476637635acf",
+  "contentType": "application/json",
+  "statusCode": 200,
+  "response": [
+    "b'[{\"text\": \"## Architecture Cost Analysis: EC2 t3.micro\\\\n\\\\n### Architecture Description\\\\n- 1x Amazon EC2 t3.micro instance running 24/7\\\\n- Data transfer for ...
+```
 
 **本セクションのまとめ**
 
-* **AgentCore Runtime により継続的かつ安全なコンテキストが維持できる！** : いままで AI エージェントをデプロイする先は Fargate や AWS Lambda がありましたが、AI エージェントとのインタラクティブなやり取りで必要になるひつようになるセキュアなコード実行環境を提供する Code Interpreter、ブラウザ実行環境を提供する Browser はローカル/クラウド関わらずセキュアな AI エージェントの実行を可能にする
+* **AgentCore Runtime により継続的かつ安全なコンテキストが維持できる！** : いままで AI エージェントをデプロイする先は AWS Fargate / Amazon ECS や AWS Lambda がありましたが、完全サーバーレスの実現や Long Running な実行に課題がありました。 AgentCore Runtime が登場したことで、AI エージェントとのインタラクティブなやり取りで必要になるセキュアかつ継続的な実行環境が利用できるようになりました。
 
 ## 🛡️ : AI エージェントの利用に認証をかけて公開する : [AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html)
 

@@ -7,12 +7,12 @@ from bedrock_agentcore.runtime import BedrockAgentCoreApp
 app = BedrockAgentCoreApp()
 
 @app.entrypoint
-def invoke(payload):
+async def invoke(payload):
     user_input = payload.get("prompt")
     agent = AWSCostEstimatorAgent()
-
-    # Batch
-    return agent.estimate_costs(user_input)
+    stream = agent.estimate_costs_stream(user_input)
+    async for event in stream:
+        yield (event)
 
 
 if __name__ == "__main__":
