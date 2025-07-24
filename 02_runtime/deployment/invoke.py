@@ -27,4 +27,3 @@ async def invoke(payload):
 
 if __name__ == "__main__":
     app.run()
-

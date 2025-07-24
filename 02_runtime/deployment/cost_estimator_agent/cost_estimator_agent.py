@@ -13,14 +13,14 @@ Key Features:
 - Progressive complexity building
 """
 
-import os
 import logging
 import traceback
 import boto3
 from contextlib import contextmanager
-from typing import Generator, AsyncGenerator, Optional
+from typing import Generator, AsyncGenerator
 from strands import Agent, tool
 from strands.tools.mcp import MCPClient
+from strands.handlers.callback_handler import null_callback_handler
 from mcp import stdio_client, StdioServerParameters
 from bedrock_agentcore.tools.code_interpreter_client import CodeInterpreter
 from cost_estimator_agent.config import (
@@ -33,13 +33,13 @@ from cost_estimator_agent.config import (
 
 # Configure comprehensive logging for debugging and monitoring
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.ERROR,  # Set to ERROR by default, can be changed to DEBUG for more details
     format=LOG_FORMAT,
     handlers=[logging.StreamHandler()]
 )
 
 # Enable Strands debug logging for detailed agent behavior
-logging.getLogger("strands").setLevel(logging.DEBUG)
+logging.getLogger("strands").setLevel(logging.ERROR)
 
 logger = logging.getLogger(__name__)
 
@@ -266,16 +266,20 @@ class AWSCostEstimatorAgent:
         """
         Estimate costs for a given architecture description with streaming response
         
+        Implements proper delta-based streaming following Amazon Bedrock best practices.
+        This addresses the common issue where Strands stream_async() may send overlapping
+        content chunks instead of proper deltas.
+        
         Args:
             architecture_description: Description of the system to estimate
             
         Yields:
-            Streaming events from the agent response
+            Streaming events with true delta content (only new text, no duplicates)
             
         Example usage:
             async for event in agent.estimate_costs_stream(description):
                 if "data" in event:
-                    print(event["data"], end="", flush=True)
+                    print(event["data"], end="", flush=True)  # Direct printing, no accumulation needed
         """
         logger.info("📊 Starting streaming cost estimation...")
         logger.info(f"Architecture: {architecture_description}")
@@ -287,12 +291,32 @@ class AWSCostEstimatorAgent:
                     architecture_description=architecture_description
                 )
                 
-                # Stream the agent response
-                agent_stream = agent.stream_async(prompt)
-                
                 logger.info("🔄 Streaming cost estimation response...")
-                async for event in agent_stream:                    
-                    yield event
+                
+                # Implement proper delta handling to prevent duplicates
+                # This follows Amazon Bedrock ContentBlockDeltaEvent pattern
+                accumulated_content = ""
+                
+                agent_stream = agent.stream_async(prompt, callback_handler=null_callback_handler)
+                
+                async for event in agent_stream:
+                    if "data" in event:
+                        current_chunk = str(event["data"])
+                        
+                        # Handle delta calculation following Bedrock best practices
+                        if current_chunk.startswith(accumulated_content):
+                            # This is an incremental update - extract only the new part
+                            delta_content = current_chunk[len(accumulated_content):]
+                            if delta_content:  # Only yield if there's actually new content
+                                accumulated_content = current_chunk
+                                yield {"data": delta_content}
+                        else:
+                            # This is a completely new chunk or reset - yield as-is
+                            accumulated_content = current_chunk
+                            yield {"data": current_chunk}
+                    else:
+                        # Pass through non-data events (errors, metadata, etc.)
+                        yield event
                 
                 logger.info("✅ Streaming cost estimation completed")
 

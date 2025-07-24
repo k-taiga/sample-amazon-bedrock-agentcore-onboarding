@@ -2,24 +2,29 @@ default_agent: cost_estimator_agent
 agents:
   cost_estimator_agent:
     name: cost_estimator_agent
-    entrypoint: /home/ubuntu/sample-amazon-bedrock-agentcore-onboarding/02_runtime/deployment/invoke.py
+    entrypoint: deployment/invoke.py
     platform: linux/arm64
     container_runtime: docker
     aws:
       execution_role: arn:aws:iam::872515288562:role/AgentCoreRole-cost_estimator_agent
+      execution_role_auto_create: true
       account: '872515288562'
       region: us-east-1
-      ecr_repository: 872515288562.dkr.ecr.us-east-1.amazonaws.com/bedrock_agentcore-cost_estimator_agent
+      ecr_repository: 872515288562.dkr.ecr.us-east-1.amazonaws.com/bedrock-agentcore-cost_estimator_agent
       ecr_auto_create: false
       network_configuration:
         network_mode: PUBLIC
       protocol_configuration:
         server_protocol: HTTP
       observability:
-        enabled: true
+        enabled: false
     bedrock_agentcore:
-      agent_id: cost_estimator_agent-KdUH315eFT
-      agent_arn: arn:aws:bedrock-agentcore:us-east-1:872515288562:runtime/cost_estimator_agent-KdUH315eFT
-      agent_session_id: null
+      agent_id: cost_estimator_agent-t3yYLdGyXu
+      agent_arn: arn:aws:bedrock-agentcore:us-east-1:872515288562:runtime/cost_estimator_agent-t3yYLdGyXu
+      agent_session_id: a86335a1-7e4b-452c-9f9a-476637635acf
+    codebuild:
+      project_name: null
+      execution_role: null
+      source_bucket: null
     authorizer_configuration: null
     oauth_configuration: null

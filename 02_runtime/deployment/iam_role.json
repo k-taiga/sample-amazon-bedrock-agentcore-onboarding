@@ -1,5 +1,0 @@
-{
-  "agent_name": "cost_estimator_agent",
-  "role_name": "AgentCoreRole-cost_estimator_agent",
-  "role_arn": "arn:aws:iam::872515288562:role/AgentCoreRole-cost_estimator_agent"
-}
