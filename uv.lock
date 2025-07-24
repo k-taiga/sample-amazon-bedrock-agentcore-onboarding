@@ -79,7 +79,7 @@ wheels = [
 
 [[package]]
 name = "bedrock-agentcore-starter-toolkit"
-version = "0.1.0"
+version = "0.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bedrock-agentcore" },
@@ -99,9 +99,9 @@ dependencies = [
     { name = "urllib3" },
     { name = "uvicorn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/38/ac/9beb744258b0a87778d508c607dc2acc3b3b5b0150b2ddd5dde5cd751183/bedrock_agentcore_starter_toolkit-0.1.0.tar.gz", hash = "sha256:8c4520db1ca0a250d2692ed883826177dd2adc263254ef6e0a0838ea1d6d020d", size = 378310, upload-time = "2025-07-16T18:43:20.05Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0f/7b/e559dc184c84dfd23a963bc89b15d3e4a0b72009938c47b19d84beed0766/bedrock_agentcore_starter_toolkit-0.1.1.tar.gz", hash = "sha256:3f0145e678f27a98180d3c5627b770d506622e6e632dc6af3f639d9b82a3876f", size = 254323, upload-time = "2025-07-22T19:53:56.329Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/43/c1/7460054474dfd8b343b944625011469467796cf41384a9af08039ff03827/bedrock_agentcore_starter_toolkit-0.1.0-py3-none-any.whl", hash = "sha256:ad1205b9a540e27148d4ac9f43c3be2c9027f2738116525a53843cf9c7b52cd9", size = 62663, upload-time = "2025-07-16T18:43:18.6Z" },
+    { url = "https://files.pythonhosted.org/packages/3b/d8/85806bb117e0829f273d35bf3d79663d7c93f0e686cea2e8a7b1a30053b9/bedrock_agentcore_starter_toolkit-0.1.1-py3-none-any.whl", hash = "sha256:d40c1de399fb5fa98dc53c174dadfcabaebca92351b588c6e945c3cc4a3294f5", size = 77884, upload-time = "2025-07-22T19:53:54.427Z" },
 ]
 
 [[package]]
@@ -1027,7 +1027,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "bedrock-agentcore", specifier = ">=0.1.0" },
-    { name = "bedrock-agentcore-starter-toolkit", specifier = ">=0.1.0" },
+    { name = "bedrock-agentcore-starter-toolkit", specifier = ">=0.1.1" },
     { name = "boto3", specifier = ">=1.39.9" },
     { name = "ruff", specifier = ">=0.12.4" },
     { name = "strands-agents", specifier = ">=1.0.1" },
