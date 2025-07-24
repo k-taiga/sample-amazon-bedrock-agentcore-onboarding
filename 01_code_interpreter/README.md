@@ -19,8 +19,10 @@ The agent takes a description of a system architecture and:
 
 - **Secure Code Execution**: Uses AgentCore Code Interpreter sandbox for safe calculations
 - **Real-time Pricing**: Fetches current AWS pricing data via MCP
+- **Streaming Support**: Provides real-time streaming responses with proper delta handling
 - **Comprehensive Analysis**: Considers multiple AWS services and regions
 - **Detailed Logging**: Includes debug logging for monitoring and troubleshooting
+- **Command-line Interface**: Flexible testing with customizable architecture descriptions
 
 ## Prerequisites
 
@@ -32,56 +34,26 @@ The agent takes a description of a system architecture and:
 ## Usage
 
 ```bash
-# Run the cost estimation agent
-uv run python 01_code_interpreter/cost_estimator_agent/cost_estimator_agent.py
+# Test with default architecture
+uv run 01_code_interpreter/test_cost_estimator_agent.py
+
+# Test with custom architecture  
+uv run 01_code_interpreter/test_cost_estimator_agent.py --architecture "Two EC2 m5.large instances"
+
+# Test only streaming
+uv run 01_code_interpreter/test_cost_estimator_agent.py --tests streaming
 ```
 
-## Testing
+### Available Test Types
 
-Run the simple test to see the agent in action:
+- **`regular`**: Non-streaming cost estimation
+- **`streaming`**: Streaming cost estimation with delta processing
 
-```bash
-uv run python 01_code_interpreter/test_cost_estimator_agent.py
+### Streaming API Usage
+
+```python
+# Streaming response (recommended)
+async for event in agent.estimate_costs_stream("One EC2 t3.micro instance running 24/7"):
+    if "data" in event:
+        print(event["data"], end="", flush=True)
 ```
-
-### What the Test Does
-
-The test demonstrates the core functionality step by step:
-
-1. **Initialize Agent** - Sets up AgentCore Code Interpreter, MCP Server, and Strands Agent
-2. **Test Code Interpreter** - Runs a simple EC2 cost calculation to verify the sandbox works
-3. **Test Cost Estimation** - Analyzes a simple web app architecture and provides detailed cost breakdown
-4. **Clean Up** - Properly stops all resources
-
-### Expected Output
-
-You should see:
-- ✅ Agent initialization success
-- ✅ Code Interpreter working with EC2 calculation ($33.41/month)
-- ✅ Complete cost estimation with:
-  - Monthly cost: ~$13.46
-  - Yearly cost: ~$161.47
-  - Service breakdown (EC2, S3, CloudFront)
-  - Cost optimization recommendations
-
-### Test Architecture
-
-Simple web application with:
-- EC2 t3.micro instance (always running)
-- 20GB S3 storage
-- CloudFront distribution
-- 1,000 page views per day
-
-This demonstrates how the agent can analyze real architectures and provide actionable cost insights.
-
-## Architecture
-
-The agent demonstrates the core AgentCore principle: **AgentCore works locally without deployment**. The Code Interpreter provides a secure sandbox environment that protects your local system while enabling powerful computational capabilities.
-
-## Implementation Highlights
-
-- Uses Strands Agents framework for clean, maintainable code
-- Integrates AWS Pricing MCP Server for accurate pricing data
-- Leverages AgentCore Code Interpreter for complex calculations
-- Includes comprehensive error handling and logging
-- Follows the project's "simple and sophisticated" principle
