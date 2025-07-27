@@ -11,10 +11,10 @@ import json
 import logging
 import argparse
 import requests
-from bedrock_agentcore_starter_toolkit.operations.gateway.client import GatewayClient
 from strands import Agent
 from strands.tools.mcp import MCPClient
 from mcp.client.streamable_http import streamablehttp_client
+from bedrock_agentcore_starter_toolkit.operations.gateway.client import GatewayClient
 
 # Configure logging with more verbose output
 logging.basicConfig(

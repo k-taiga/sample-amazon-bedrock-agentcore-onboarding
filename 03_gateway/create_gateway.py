@@ -213,22 +213,6 @@ def main():
             })
             logger.info("✅ Target configuration saved")
         
-        # Save final configuration
-        final_config = {
-            "gateway_id": gateway_id,
-            "gateway_url": gateway_url,
-            "target_id": target_id,
-            "lambda_arn": lambda_arn,
-            "cognito": {
-                "client_id": cognito_result['client_info']['client_id'],
-                "client_secret": cognito_result['client_info']['client_secret'],
-                "token_endpoint": cognito_result['client_info']['token_endpoint'],
-                "scope": cognito_result['client_info']['scope']
-            }
-        }
-        
-        save_config(final_config)
-        
         logger.info("✅ Gateway setup complete!")
         print_config_summary(final_config)
         logger.info("Next step: Run 'uv run python test_gateway.py' to test the Gateway")
