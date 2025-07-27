@@ -107,6 +107,12 @@ Our goal is publishing `agentcore_blog_ja.md` with **PERFECT** practical, simple
 - **Testimonial-style testing** - Tests should serve as working examples that demonstrate value to users
 - **Test documentation in README** - Add test instructions directly to existing README.md rather than creating separate test files
 
+### Real-World Debugging Insights
+- **Debug actual API responses** - Use logging to understand real data structures before assuming field names from documentation
+- **Verify basics first** - Check URL formats, parameter names, and service names against official documentation before implementing complex solutions
+- **Implement incremental state saves** - Save configuration after each successful step to enable partial failure recovery and easier debugging
+- **Cross-reference multiple sources** - When convenience methods fail, examine toolkit source code and API documentation together
+
 ## Implementation Checklist
 
 Before submitting any code example, ensure:
@@ -125,6 +131,8 @@ Before submitting any code example, ensure:
 - [ ] **Separated configuration** - prompts and constants extracted to pass linting tools
 - [ ] **Correct execution commands** - uses `uv run` with proper directory structure
 - [ ] **Service-specific patterns** - follows best practices for each AWS service used
+- [ ] **Debug actual object structures** - Log API responses to verify field names match expectations
+- [ ] **Implement incremental state management** - Save configuration after each successful step for partial failure recovery
 
 ## Commitment
 

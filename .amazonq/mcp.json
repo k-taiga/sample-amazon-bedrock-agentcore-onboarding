@@ -34,16 +34,17 @@
       "command": "uvx",
       "args": ["strands-agents-mcp-server"]
     },
-    "awslabs.aws-pricing-mcp-server": {
+    "awslabs.aws-serverless-mcp-server": {
       "command": "uvx",
       "args": [
-         "awslabs.aws-pricing-mcp-server@latest"
+        "awslabs.aws-serverless-mcp-server@latest",
+        "--allow-write",
+        "--allow-sensitive-data-access"
       ],
       "env": {
-        "FASTMCP_LOG_LEVEL": "ERROR",
-        "AWS_PROFILE": "default",
-        "AWS_REGION": "us-east-1"
-      },
+          "AWS_PROFILE": "default",
+          "AWS_REGION": "us-east-1"
+        },
       "disabled": false,
       "autoApprove": []
     }
