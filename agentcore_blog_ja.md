@@ -10,10 +10,10 @@ AgentCore は AI エージェントを安全かつスケーラブルに動作さ
 
 1. 🧮 : AWS の見積りを「計算」するエージェントを作成する : [AgentCore Code Interpreter](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/code-interpreter-tool.html)
 2. 🚀 : クラウド上に AI エージェントをデプロイする : [AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agents-tools-runtime.html)
-3. 🛡️ : AI エージェントの利用に認証をかけて公開する : [AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html)
-4. 📊 : AI エージェントの動作をモニタリングする : [AgentCore Observability](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability.html)
-5. 🧠 : 見積の内容を「記憶」する : [AgentCore Memory](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/memory.html)
-6. 👤 : ユーザーの認可により 3rd Party のサービスにアクセスする : [AgentCore Identity](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/identity.html)
+3. 🛡️ : AI エージェントの利用に制限をかけて公開する : [AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html)
+4. 👤 : 認証認可により権限を取得し管理する : [AgentCore Identity](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/identity.html)
+5. 📊 : AI エージェントの動作をモニタリングする : [AgentCore Observability](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability.html)
+6. 🧠 : 見積の内容を「記憶」する : [AgentCore Memory](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/memory.html)
 
 
 では、はじめて行きましょう！
@@ -166,63 +166,310 @@ Response:
 
 * **AgentCore Runtime により継続的かつ安全なコンテキストが維持できる！** : いままで AI エージェントをデプロイする先は AWS Fargate / Amazon ECS や AWS Lambda がありましたが、完全サーバーレスの実現や Long Running な実行に課題がありました。 AgentCore Runtime が登場したことで、AI エージェントとのインタラクティブなやり取りで必要になるセキュアかつ継続的な実行環境が利用できるようになりました。
 
-## 🛡️ : AI エージェントの利用に認証をかけて公開する : [AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html)
+## 🛡️ : AI エージェントの利用に制限をかけて公開する : [AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html)
 
-[AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html)は AI エージェントを安全に公開するための文字通り「玄関口」を提供します。具体的には、サーバーサイドで MCP ツール等にアクセスする際に認証済みである証拠 (Bearer Token) を要求することが出来ます。これにより、[LiteLLM](https://docs.litellm.ai/docs/mcp) などが提供する 1) MCP Server に対する単一のエンドポイント 2) MCP サーバーアクセス時の認証機能を Managed で実装できます。もちろん、先行する OSS が高機能・多機能である点はありますがサーバーレスのコストメリットは十分で必要な機能を満たすのであればコスト効率よく運用が出来ます。
+[AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html)は AI エージェントを安全に公開するための文字通り「玄関口」を提供します。具体的には、サーバーサイドで MCP ツール等にアクセスする際に認証済みである証拠 (Bearer Token) を要求することが出来ます。これにより、[LiteLLM](https://docs.litellm.ai/docs/mcp) などが提供する 1) MCP Server に対する単一のエンドポイント 2) MCP サーバーアクセス時の認証機能を Managed で実装できます。もちろん先行する OSS が高機能・多機能である面はありますが、必要な機能を満たす場合サーバーレスのコスト効率を得ることが出来ます。
 
-では、先ほど AgentCore Runtime にデプロイした Agent に Gateway を設置してみましょう。
+AgentCore Gateway には Inbound のチェックに使用する OAuth 認証 (※実態は認可) 、通過したリクエストをパスする Outbound のターゲットを設定します。ターゲットとして AWS Lambda、また OpenAPI や Smithy を設定できます。3rd Party の提供する MCP や Agent を認証経由で利用したい場合、Gateway を通じ統合することで Internal / External 共通のエンドポイントを作成できる構成になっています。
 
-1. Gateway に使用するP
+実際に試して見ましょう。Inbound の OAuth は Cognito、Outboud のターゲットとして先ほど AgentCore Runtime にデプロイした Agent を呼び出す AWS Lambda を設定します。この設定では、Agent を MCP ツール扱いで Client から呼び出す形になります。
 
-実装では、外部リクエストとAgentCore Runtimeでホストされるエージェント間のブリッジとして機能する[AWS Lambda関数](https://docs.aws.amazon.com/lambda/latest/dg/welcome.html)を作成します。[Amazon Cognito User Pool認証](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-integrate-with-cognito.html)を備えた[Amazon API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html)がユーザー認証を処理し、承認されたユーザーのみがコスト見積もりエージェントにアクセスできることを保証します。
+### Inbound の OAuth
 
-```python
-import json
-import boto3
-from typing import Dict, Any
+[`03_gateway/create_gateway.py`](https://github.com/icoxfog417/sample-amazon-bedrock-agentcore-onboarding/blob/main/03_gateway/create_gateway.py) で OAuth を行う Cognito とそれを利用した Gateway を作成しています。実装は `bedrock_agentcore_starter_toolkit` の `GatewayClient` で簡単に行うことが出来ます。
 
-def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    """AgentCore Gateway統合のためのLambda関数"""
-    
-    # Cognito JWTトークンからユーザーコンテキストを抽出
-    user_context = extract_user_context(event['requestContext']['authorizer'])
-    
-    # リクエストペイロードを検証
-    if not validate_request(event['body']):
-        return {
-            'statusCode': 400,
-            'body': json.dumps({'error': '無効なリクエスト形式'})
-        }
-    
-    # AgentCore Runtimeにリクエストを転送
-    agentcore_client = boto3.client('bedrock-agentcore')
-    
-    try:
-        response = agentcore_client.invoke_agent(
-            agentId=os.environ['AGENT_ID'],
-            sessionId=generate_session_id(user_context),
-            inputText=json.loads(event['body'])['message']
-        )
-        
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': json.dumps(response)
-        }
-    
-    except Exception as e:
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'error': '内部サーバーエラー'})
-        }
+```py
+from bedrock_agentcore_starter_toolkit.operations.gateway.client import GatewayClient
+...
+client = GatewayClient(region_name=boto3.Session().region_name)
+...
+cognito_result = client.create_oauth_authorizer_with_cognito("AWSCostEstimationResourceServer")
+
+cognito_config = {
+    "cognito": {
+        "client_id": cognito_result['client_info']['client_id'],
+        "client_secret": cognito_result['client_info']['client_secret'],
+        "token_endpoint": cognito_result['client_info']['token_endpoint'],
+        "scope": cognito_result['client_info']['scope'],
+        "user_pool_id": cognito_result['client_info']['user_pool_id']
+    }
+}
+...
+gateway = client.create_mcp_gateway(
+    name="AWSCostEstimationGateway",
+    role_arn=None,
+    authorizer_config=cognito_result["authorizer_config"],
+    enable_semantic_search=False
+)
 ```
 
-ゲートウェイ設定は、[RFC 6749](https://tools.ietf.org/html/rfc6749)仕様に従って、サードパーティ統合のための[OAuth 2.0フロー](https://oauth.net/2/)を実装します。レート制限は[AWS API Gatewayスロットリング](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-request-throttling.html)を通じて悪用を防ぎ、包括的なログ記録は[AWS CloudTrail](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-user-guide.html)を通じてセキュリティ監査を可能にします。
+* `create_oauth_authorizer_with_cognito` で作成される Cognito は [`client_credentials`](https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_CreateUserPoolClient.html) が指定されており、本来は M2M 、システム間同士の接続に利用されます。そのため、一般的な画面が遷移して認証する形式の OAuth (`code`) を使用する場合は使えません
 
-セキュリティ実装は、適切なCORS設定、リクエストサイズ制限、入力検証、基盤インフラストラクチャに関する情報開示を防ぐためのエラーメッセージのサニタイゼーションを含む[OWASP API Security Top 10](https://owasp.org/www-project-api-security/)ガイドラインに従います。
+### Outbound の AWS Lambda
+
+今回は [AWS SAM](https://docs.aws.amazon.com/ja_jp/serverless-application-model/latest/developerguide/what-is-sam.html) を使用し AWS Lambda を作成しました。[03_gateway/src/app.py](https://github.com/icoxfog417/sample-amazon-bedrock-agentcore-onboarding/blob/main/03_gateway/src/app.py) で実装しています。
+
+```py
+    # Initialize AgentCore client
+    client = boto3.client('bedrock-agentcore')
+    
+    # Prepare the payload for cost estimation
+    payload = {
+        "prompt": architecture_description
+    }
+    
+    # Generate session ID for this request
+    session_id = str(uuid.uuid4())
+    
+    logger.info(f"Invoking AgentCore Runtime with session: {session_id}")
+    
+    # Invoke the runtime
+    # Explicitly set the traceId to avoid `Value at 'traceId' failed to satisfy constraint: Member must have length less than or equal to 128\` error
+    response = client.invoke_agent_runtime(
+        agentRuntimeArn=runtime_arn,
+        runtimeSessionId=session_id,
+        payload=json.dumps(payload).encode('utf-8'),
+        traceId=session_id,
+    )
+```
+
+* 本記事執筆時点の注意点として、`traceId` を明示的に指定しないと `Value at 'traceId' failed to satisfy constraint: Member must have length less than or equal to 128` が発生する場合があります
+* AWS Lambda の実行ロールには `bedrock-agentcore:InvokeAgentRuntime` の許可が必要です。
+
+AWS Lambda を作成したら、Gateway への登録を行います。[`03_gateway/create_gateway.py`](https://github.com/icoxfog417/sample-amazon-bedrock-agentcore-onboarding/blob/main/03_gateway/create_gateway.py) にて実装をしています。
+
+```py
+tool_schema = [
+    {
+        "name": "aws_cost_estimation",
+        "description": "Estimate AWS costs for a given architecture description",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "architecture_description": {
+                    "type": "string",
+                    "description": "Description of the AWS architecture to estimate costs for"
+                }
+            },
+            "required": ["architecture_description"]
+        }
+    }
+]
+
+# Create lambda target with required credentialProviderConfigurations
+# Note: toolkit's create_mcp_gateway_target doesn't handle custom target_payload + credentials
+# Reference: https://github.com/aws/bedrock-agentcore-starter-toolkit/pull/57 
+target_name = f"AWSCostEstimationLambdaTarget"
+
+create_request = {
+    "gatewayIdentifier": gateway["gatewayId"],
+    "name": target_name,
+    "targetConfiguration": {
+        "mcp": {
+            "lambda": {
+                "lambdaArn": lambda_arn,
+                "toolSchema": {
+                    "inlinePayload": tool_schema
+                }
+            }
+        }
+    },
+    "credentialProviderConfigurations": [{"credentialProviderType": "GATEWAY_IAM_ROLE"}]
+}
+
+logger.info("Creating Lambda target with custom schema and credentials...")
+logger.info(f"Request: {create_request}")
+
+# Use boto3 client directly since toolkit method doesn't support this combination
+bedrock_client = client.session.client('bedrock-agentcore-control')
+target_response = bedrock_client.create_gateway_target(**create_request)
+```
+
+* 本当は `bedrock-agentcore-starter-toolkit` の `create_mcp_gateway_target` を使うと楽なのですが、執筆時点では [credential を指定できない不具合](https://github.com/aws/bedrock-agentcore-starter-toolkit/pull/57)があり対応待ちとなっています。
+
+では、実際に利用してみましょう。Gateway には登録されている Outbound のツールの一覧を提供する [Listing](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-using-mcp-list.html) の機能があり、今回は登録済みのはずの `aws_cost_estimation` がないかチェックしてから実行しています。
+
+```py
+from strands import Agent
+from strands.tools.mcp import MCPClient
+from mcp.client.streamable_http import streamablehttp_client
+from bedrock_agentcore_starter_toolkit.operations.gateway.client import GatewayClient
+
+...
+
+def test_with_mcp_client(gateway_url, token):
+    """Test the Gateway using MCP client via Strands Agents"""
+    logger.info("Testing Gateway with MCP client (Strands Agents)...")
+    
+    def create_streamable_http_transport():
+        """Create streamable HTTP transport with authentication"""
+        return streamablehttp_client(
+            gateway_url, 
+            headers={"Authorization": f"Bearer {token}"}
+        )
+    
+    def get_full_tools_list(client):
+        """List tools with support for pagination"""
+        more_tools = True
+        tools = []
+        pagination_token = None
+        while more_tools:
+            tmp_tools = client.list_tools_sync(pagination_token=pagination_token)
+            tools.extend(tmp_tools)
+            if tmp_tools.pagination_token is None:
+                more_tools = False
+            else:
+                more_tools = True 
+                pagination_token = tmp_tools.pagination_token
+        return tools
+    
+    # Create MCP client using the pattern from AWS documentation
+    mcp_client = MCPClient(create_streamable_http_transport)
+    
+    try:
+        with mcp_client:
+            # List available tools
+            logger.info("Listing tools via MCP client...")
+            tools = get_full_tools_list(mcp_client)
+            tool_names = [tool.tool_name for tool in tools]
+            logger.info(f"Found the following tools: {tool_names}")
+            
+            # Find the cost estimation tool
+            cost_estimation_tool = None
+            for tool in tools:
+                if 'aws_cost_estimation' in tool.tool_name:
+                    cost_estimation_tool = tool
+                    break
+            
+            if not cost_estimation_tool:
+                logger.error("No aws_cost_estimation tool found in available tools")
+                return
+            
+            logger.info(f"Found cost estimation tool: {cost_estimation_tool.tool_name}")
+            
+            # Create agent with the tools
+            logger.info("Creating agent with MCP tools...")
+            agent = Agent(
+                tools=tools,
+                system_prompt="You are a helpful assistant that can estimate AWS costs."
+            )
+            
+            # Test by asking the agent to use the aws_cost_estimation tool
+            logger.info("\nAsking agent to estimate AWS costs...")
+            
+            prompt = ("Please use the aws_cost_estimation tool to estimate costs for this architecture: " +
+                     "[quick]A simple web application with an Application Load Balancer, 2 EC2 t3.medium instances, and an RDS MySQL database in us-east-1.")
+            
+            result = agent(prompt)
+            
+            logger.info("\nAgent response:")
+            logger.info(result)
+            
+            return result
+            
+    except Exception as e:
+        logger.error(f"MCP client test failed: {e}")
+        logger.info("Falling back to direct API test...")
+        test_with_direct_api(gateway_url, token)
+```
+
+肝心の Gateway を通過するためのトークンは `get_oauth_token` で取得しています。`GatewayClient` の `get_access_token_for_cognito` を使用することで得られます。
+
+```py
+def get_oauth_token(config):
+    """Get OAuth token from Cognito using bedrock_agentcore_starter_toolkit"""
+    logger.info("Getting OAuth token from Cognito...")
+    
+    # Create GatewayClient and use its method to get access token
+    gateway_client = GatewayClient()
+    
+    # Prepare client_info in the format expected by the method
+    client_info = {
+        'client_id': config['cognito']['client_id'],
+        'client_secret': config['cognito']['client_secret'],
+        'scope': config['cognito']['scope'],
+        'token_endpoint': config['cognito']['token_endpoint']
+    }
+    
+    token = gateway_client.get_access_token_for_cognito(client_info)
+    
+    logger.info("Successfully obtained OAuth token")
+    return token
+```
+
+Gateway を使用することで、AWS Lambda は必要ですが Amazon API Gateway なしに Agent や MCP を安全に公開できます。Gateway はタイムアウト上限が 55 秒で ([Timeout for a gateway invocation](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/bedrock-agentcore-limits.html#gateway-endpoints-quotas))、API Gateway のデフォルト 30 秒ほどより長く、なにより Streamable HTTP に対応している点が最大のメリットとなります。ただ、価格は API Gateway の $3.5/100 万 (REST API) に比べて $5/100 万 (API Invocations) となり若干割高です (※価格は 2025/7/27 時点のもので、AgentCore は Preview 中である点にご注意ください)。
+
+**本セクションのまとめ**
+
+* **AgentCore Gateway により安全に Agent/MCP を公開するエンドポイントが作成できる** : Inbound の認証 (※実態は認可) に OAuth をかけることでセキュアに、かつ Outboud に AWS Lambda や OpenAPI 等を設定することで API Gateway 等なしに Streamable HTTP で接続できるエンドポイントを公開することが出来ます。
+
+## 👤 : ユーザーの認可により 3rd Party のサービスにアクセスする : [AgentCore Identity](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/identity.html)
+
+
+[AgentCore Identity](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/identity.html)は、既存の企業アイデンティティプロバイダーとシームレスに統合するセキュアでスケーラブルなエージェントアイデンティティおよびアクセス管理機能を提供し、ユーザー移行や認証フローの再構築の必要性を排除します。
+
+実装では、[Okta](https://developer.okta.com/docs/)、[Microsoft Entra ID](https://docs.microsoft.com/en-us/azure/active-directory/)、または[Amazon Cognito](https://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html)などの企業アイデンティティプロバイダーと統合するようにAgentCore Identityを設定し、Slack統合が別個の認証情報管理を必要とするのではなく、既存のユーザー認証を活用することを保証します。
+
+```python
+import slack_sdk
+from slack_sdk.oauth import OAuthFlow
+from amazon_bedrock_agentcore.identity import IdentityManager
+
+class SlackIntegration:
+    def __init__(self):
+        self.identity_manager = IdentityManager()
+        self.slack_client = slack_sdk.WebClient()
+        
+        # AgentCore IdentityでOAuthフローを設定
+        self.oauth_flow = OAuthFlow(
+            client_id=os.environ['SLACK_CLIENT_ID'],
+            client_secret=os.environ['SLACK_CLIENT_SECRET'],
+            scopes=["chat:write", "channels:read", "users:read"],
+            redirect_uri="https://api.example.com/slack/oauth/callback"
+        )
+    
+    async def handle_slack_event(self, event_data: Dict[str, Any]) -> None:
+        """アイデンティティ検証を使用した受信Slackイベントの処理"""
+        
+        # Slackリクエスト署名を検証
+        if not self.verify_slack_signature(event_data):
+            raise ValueError("無効なSlack署名")
+        
+        # Slackイベントからユーザーアイデンティティを抽出
+        slack_user_id = event_data['event']['user']
+        
+        # Slackユーザーをエンタープライズアイデンティティにマッピング
+        enterprise_identity = await self.identity_manager.resolve_identity(
+            provider="slack",
+            external_id=slack_user_id
+        )
+        
+        if not enterprise_identity:
+            await self.send_slack_message(
+                channel=event_data['event']['channel'],
+                text="まず企業の認証情報で認証してください。"
+            )
+            return
+        
+        # 検証されたアイデンティティでエージェントリクエストを処理
+        user_message = event_data['event']['text']
+        agent_response = await self.process_agent_request(
+            user_id=enterprise_identity['user_id'],
+            message=user_message
+        )
+        
+        # Slackにレスポンスを送信
+        await self.send_slack_message(
+            channel=event_data['event']['channel'],
+            text=agent_response
+        )
+```
+
+Slack統合は、適切なトークン保存、更新メカニズム、スコープ管理を含む[Slackのセキュリティベストプラクティス](https://api.slack.com/authentication/best-practices)に従って[OAuth 2.0フロー](https://api.slack.com/authentication/oauth-v2)を実装します。実装は、指数バックオフとリクエストキューイングを通じて[Slackのレート制限](https://api.slack.com/docs/rate-limits)を処理します。
+
+企業セキュリティ要件には、不正アクセスを防ぐための[Slackのリクエスト検証](https://api.slack.com/authentication/verifying-requests-from-slack)の実装、アクセススコープを最小化するための適切な[Slackアプリ権限](https://api.slack.com/scopes)の設定、[AWS CloudTrail](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-user-guide.html)統合を通じた監査ログの確立が含まれます。
+
+統合は、リッチメッセージフォーマットのための[SlackのBlock Kit](https://api.slack.com/block-kit)をサポートし、コスト見積もりエージェントがSlackインターフェース内で複雑な価格情報を消化しやすい形式で提示できるようにします。
 
 ## 📊 : AI エージェントの動作をモニタリングする : [AgentCore Observability](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability.html)
 
@@ -331,73 +578,6 @@ class CostEstimationAgent:
 
 メモリシステムは、保存時および転送時の暗号化のために[AWS Key Management Service (KMS)](https://docs.aws.amazon.com/kms/latest/developerguide/overview.html)と統合し、機密コスト情報がそのライフサイクル全体を通じて保護されることを保証します。
 
-## 👤 : ユーザーの認可により 3rd Party のサービスにアクセスする : [AgentCore Identity](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/identity.html)
-
-
-[AgentCore Identity](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/identity.html)は、既存の企業アイデンティティプロバイダーとシームレスに統合するセキュアでスケーラブルなエージェントアイデンティティおよびアクセス管理機能を提供し、ユーザー移行や認証フローの再構築の必要性を排除します。
-
-実装では、[Okta](https://developer.okta.com/docs/)、[Microsoft Entra ID](https://docs.microsoft.com/en-us/azure/active-directory/)、または[Amazon Cognito](https://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html)などの企業アイデンティティプロバイダーと統合するようにAgentCore Identityを設定し、Slack統合が別個の認証情報管理を必要とするのではなく、既存のユーザー認証を活用することを保証します。
-
-```python
-import slack_sdk
-from slack_sdk.oauth import OAuthFlow
-from amazon_bedrock_agentcore.identity import IdentityManager
-
-class SlackIntegration:
-    def __init__(self):
-        self.identity_manager = IdentityManager()
-        self.slack_client = slack_sdk.WebClient()
-        
-        # AgentCore IdentityでOAuthフローを設定
-        self.oauth_flow = OAuthFlow(
-            client_id=os.environ['SLACK_CLIENT_ID'],
-            client_secret=os.environ['SLACK_CLIENT_SECRET'],
-            scopes=["chat:write", "channels:read", "users:read"],
-            redirect_uri="https://api.example.com/slack/oauth/callback"
-        )
-    
-    async def handle_slack_event(self, event_data: Dict[str, Any]) -> None:
-        """アイデンティティ検証を使用した受信Slackイベントの処理"""
-        
-        # Slackリクエスト署名を検証
-        if not self.verify_slack_signature(event_data):
-            raise ValueError("無効なSlack署名")
-        
-        # Slackイベントからユーザーアイデンティティを抽出
-        slack_user_id = event_data['event']['user']
-        
-        # Slackユーザーをエンタープライズアイデンティティにマッピング
-        enterprise_identity = await self.identity_manager.resolve_identity(
-            provider="slack",
-            external_id=slack_user_id
-        )
-        
-        if not enterprise_identity:
-            await self.send_slack_message(
-                channel=event_data['event']['channel'],
-                text="まず企業の認証情報で認証してください。"
-            )
-            return
-        
-        # 検証されたアイデンティティでエージェントリクエストを処理
-        user_message = event_data['event']['text']
-        agent_response = await self.process_agent_request(
-            user_id=enterprise_identity['user_id'],
-            message=user_message
-        )
-        
-        # Slackにレスポンスを送信
-        await self.send_slack_message(
-            channel=event_data['event']['channel'],
-            text=agent_response
-        )
-```
-
-Slack統合は、適切なトークン保存、更新メカニズム、スコープ管理を含む[Slackのセキュリティベストプラクティス](https://api.slack.com/authentication/best-practices)に従って[OAuth 2.0フロー](https://api.slack.com/authentication/oauth-v2)を実装します。実装は、指数バックオフとリクエストキューイングを通じて[Slackのレート制限](https://api.slack.com/docs/rate-limits)を処理します。
-
-企業セキュリティ要件には、不正アクセスを防ぐための[Slackのリクエスト検証](https://api.slack.com/authentication/verifying-requests-from-slack)の実装、アクセススコープを最小化するための適切な[Slackアプリ権限](https://api.slack.com/scopes)の設定、[AWS CloudTrail](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-user-guide.html)統合を通じた監査ログの確立が含まれます。
-
-統合は、リッチメッセージフォーマットのための[SlackのBlock Kit](https://api.slack.com/block-kit)をサポートし、コスト見積もりエージェントがSlackインターフェース内で複雑な価格情報を消化しやすい形式で提示できるようにします。
 
 ## 結論と次のステップ
 

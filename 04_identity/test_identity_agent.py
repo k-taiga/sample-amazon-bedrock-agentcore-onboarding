@@ -69,7 +69,7 @@ async def test_identity_protected_estimation():
         result_text = str(result)
         assert len(result_text) > 100, "Result should contain substantial content"
         
-        print(f"✅ Cost estimation completed successfully")
+        print("✅ Cost estimation completed successfully")
         print(f"   Time taken: {end_time - start_time:.2f} seconds")
         print(f"   Result length: {len(result_text)} characters")
         print("\n📊 Cost Estimation Result:")
@@ -103,9 +103,9 @@ async def run_all_tests():
         if success:
             passed += 1
         print(f"Test result: {'✅ PASSED' if success else '❌ FAILED'}")
-    except Exception as e:
+    except Exception:
         logger.exception(f"Test {test_name} failed with exception:")
-        print(f"Test result: ❌ FAILED (Exception)")
+        print("Test result: ❌ FAILED (Exception)")
     
     end_time = time.time()
     

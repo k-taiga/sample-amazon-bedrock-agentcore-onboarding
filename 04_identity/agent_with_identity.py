@@ -21,7 +21,6 @@ Usage:
     result = await agent.estimate_costs("architecture description")
 """
 
-import os
 import asyncio
 import json
 from strands import Agent

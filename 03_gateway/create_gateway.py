@@ -163,7 +163,7 @@ def main():
             # Create lambda target with required credentialProviderConfigurations
             # Note: toolkit's create_mcp_gateway_target doesn't handle custom target_payload + credentials
             # Reference: https://github.com/aws/bedrock-agentcore-starter-toolkit/pull/57 
-            target_name = f"AWSCostEstimationLambdaTarget"
+            target_name = "AWSCostEstimationLambdaTarget"
             
             create_request = {
                 "gatewayIdentifier": gateway["gatewayId"],
@@ -214,7 +214,6 @@ def main():
             logger.info("✅ Target configuration saved")
         
         logger.info("✅ Gateway setup complete!")
-        print_config_summary(final_config)
         logger.info("Next step: Run 'uv run python test_gateway.py' to test the Gateway")
         
     except Exception as e:

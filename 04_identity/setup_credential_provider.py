@@ -124,7 +124,7 @@ def setup_oauth2_credential_provider(provider_name: str = PROVIDER_NAME):
         logger.info(f"   ARN: {response['credentialProviderArn']}")
         logger.info(f"   Name: {provider_name}")
         logger.info(f"   Scope to use: ['{cognito_config['scope']}']")
-        logger.info(f"   Auth Flow: M2M (Machine-to-Machine)")
+        logger.info("   Auth Flow: M2M (Machine-to-Machine)")
         
         return True
         

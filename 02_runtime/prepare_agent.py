@@ -11,16 +11,11 @@ import shutil
 import logging
 import time
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Literal
 import boto3
 import click
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from botocore.exceptions import ClientError
-from bedrock_agentcore_starter_toolkit import Runtime
-from bedrock_agentcore_starter_toolkit.operations.runtime import configure_bedrock_agentcore, validate_agent_name
-from bedrock_agentcore_starter_toolkit.operations.runtime.models import ConfigureResult
-from bedrock_agentcore_starter_toolkit.utils.runtime.entrypoint import parse_entrypoint
 
 # Configure logging
 logging.basicConfig(
@@ -314,7 +309,7 @@ def prepare(source_dir: str, region: str):
             TextColumn("[progress.description]{task.description}"),
             transient=True,
         ) as progress:
-            task = progress.add_task("[cyan]Preparing agent...", total=None)
+            _ = progress.add_task("[cyan]Preparing agent...", total=None)
             configure_command = preparer.prepare()
             progress.stop()
         
