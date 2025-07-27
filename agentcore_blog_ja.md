@@ -168,10 +168,11 @@ Response:
 
 ## 🛡️ : AI エージェントの利用に認証をかけて公開する : [AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html)
 
-[AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html)は AI エージェントを安全に公開するための文字通り「玄関口」を提供します。感覚的には Amazon CloudFront に近く、生身の AWS Lambda 
+[AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html)は AI エージェントを安全に公開するための文字通り「玄関口」を提供します。具体的には、サーバーサイドで MCP ツール等にアクセスする際に認証済みである証拠 (Bearer Token) を要求することが出来ます。これにより、[LiteLLM](https://docs.litellm.ai/docs/mcp) などが提供する 1) MCP Server に対する単一のエンドポイント 2) MCP サーバーアクセス時の認証機能を Managed で実装できます。もちろん、先行する OSS が高機能・多機能である点はありますがサーバーレスのコストメリットは十分で必要な機能を満たすのであればコスト効率よく運用が出来ます。
 
+では、先ほど AgentCore Runtime にデプロイした Agent に Gateway を設置してみましょう。
 
-ユーザーのアイデンティティを検証するためのイングレス認証と、外部ツールやサービスに安全に接続するためのエグレス認証の両方を提供する、セキュアなエージェントデプロイメントのための包括的な機能を提供します。
+1. Gateway に使用するP
 
 実装では、外部リクエストとAgentCore Runtimeでホストされるエージェント間のブリッジとして機能する[AWS Lambda関数](https://docs.aws.amazon.com/lambda/latest/dg/welcome.html)を作成します。[Amazon Cognito User Pool認証](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-integrate-with-cognito.html)を備えた[Amazon API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html)がユーザー認証を処理し、承認されたユーザーのみがコスト見積もりエージェントにアクセスできることを保証します。
 
