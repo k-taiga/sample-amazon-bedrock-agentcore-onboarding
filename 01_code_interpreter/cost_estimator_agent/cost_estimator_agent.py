@@ -255,7 +255,16 @@ class AWSCostEstimatorAgent:
                 result = agent(prompt)
                 
                 logger.info("✅ Cost estimation completed")
-                return result.message["content"] if result.message else "No estimation result."
+
+                if result.message and result.message.get("content"):
+                    # Extract text from all ContentBlocks and concatenate
+                    text_parts = []
+                    for content_block in result.message["content"]:
+                        if isinstance(content_block, dict) and "text" in content_block:
+                            text_parts.append(content_block["text"])
+                    return "".join(text_parts) if text_parts else "No text content found."
+                else:
+                    return "No estimation result."
 
         except Exception as e:
             logger.exception(f"❌ Cost estimation failed: {e}")

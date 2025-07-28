@@ -10,14 +10,11 @@ sequenceDiagram
     participant Agent as Cost Estimator Agent
     participant MCP as AWS Pricing MCP
     participant CodeInt as AgentCore Code Interpreter
-    participant Bedrock as Amazon Bedrock
 
     User->>Agent: Architecture Description
     Agent->>MCP: Fetch AWS Pricing Data
     MCP-->>Agent: Current Pricing Info
     Agent->>CodeInt: Execute Cost Calculations
-    CodeInt->>Bedrock: Secure Python Execution
-    Bedrock-->>CodeInt: Calculation Results
     CodeInt-->>Agent: Cost Estimates
     Agent-->>User: Detailed Cost Breakdown
 ```
