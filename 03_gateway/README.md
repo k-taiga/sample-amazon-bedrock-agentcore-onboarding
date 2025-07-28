@@ -1,184 +1,220 @@
-# 03_gateway - AgentCore Gateway with Lambda Integration
+# AgentCore Gateway Integration
 
-This example demonstrates how to combine AWS Lambda with Amazon Bedrock AgentCore Gateway to expose the cost estimator agent from `02_runtime` as an MCP tool.
+This implementation demonstrates **AgentCore Gateway** with Lambda integration that exposes the cost estimator agent from `02_runtime` as an MCP tool with Cognito OAuth authentication.
 
-## Overview
-
-In this example, we:
-1. Deploy a Lambda function using AWS SAM that calls the AgentCore Runtime from `02_runtime`
-2. Create an AgentCore Gateway with Cognito authentication
-3. Add the Lambda function as a Gateway target with the `aws_cost_estimation` tool
-4. Test the Gateway using both direct API calls and MCP protocol
-
-## Architecture
+## Process Overview
 
 ```mermaid
-graph LR
-    A[Client<br/>API/MCP calls] -->|OAuth Token| B[AgentCore Gateway<br/>with Cognito Auth]
-    B -->|Invoke| C[Lambda Function<br/>SAM deployed]
-    C -->|InvokeAgentRuntime| D[AgentCore Runtime<br/>from 02_runtime]
-    D -->|Cost Estimation| C
-    C -->|Response| B
-    B -->|API/MCP Response| A
+sequenceDiagram
+    participant Client as MCP Client
+    participant Gateway as AgentCore Gateway
+    participant Cognito as Cognito OAuth
+    participant Lambda as Lambda Function
+    participant Runtime as AgentCore Runtime
+
+    Client->>Cognito: OAuth M2M Flow
+    Cognito-->>Client: Access Token
+    Client->>Gateway: MCP Request + Token
+    Gateway->>Gateway: Validate Token
+    Gateway->>Lambda: Invoke aws_cost_estimation
+    Lambda->>Runtime: InvokeAgentRuntime
+    Runtime-->>Lambda: Cost Estimation
+    Lambda-->>Gateway: Results
+    Gateway-->>Client: MCP Response
 ```
 
 ## Prerequisites
 
-- AWS CLI configured with appropriate permissions
-- AWS SAM CLI installed
-- Python 3.12 or later
-- Completed deployment of AgentCore Runtime in `02_runtime`
-- Docker (for SAM build)
+1. **Runtime deployed** - Complete `02_runtime` setup first
+2. **AWS SAM CLI** - For Lambda deployment
+3. **AWS credentials** - With Gateway and Lambda permissions
+4. **Dependencies** - Installed via `uv` (see pyproject.toml)
 
-## Files
+## How to use
 
-- `template.yaml` - AWS SAM template for Lambda deployment
-- `src/app.py` - Lambda function that calls AgentCore Runtime
-- `src/requirements.txt` - Lambda dependencies
-- `deploy.sh` - Script to deploy Lambda using SAM
-- `create_gateway.py` - Script to create Gateway with Cognito OAuth
-- `test_gateway.py` - Script to test the Gateway with API and MCP methods
-- `test_lambda_simple.py` - Simple Lambda function test without Docker
+### File Structure
 
-## Detailed Setup Instructions
-
-### Prerequisites Installation
-
-Install local dependencies:
-
-```bash
-uv sync
+```
+03_gateway/
+├── README.md                      # This documentation
+├── template.yaml                  # SAM template for Lambda
+├── src/app.py                     # Lambda function implementation
+├── deploy.sh                      # Lambda deployment script
+├── create_gateway.py              # Gateway setup with Cognito
+├── test_gateway.py                # Gateway testing suite
+└── gateway_config.json            # Generated configuration
 ```
 
-Ensure you have completed the `02_runtime` deployment:
+### Step 1: Deploy Lambda Function
 
 ```bash
-ls ../02_runtime/.bedrock_agentcore.yaml
-```
-
-This file should exist and contain the AgentCore Runtime ARN.
-
-### Step-by-Step Execution
-
-#### 1. Deploy Lambda Function (`deploy.sh`)
-
-The deployment script reads the AgentCore Runtime ARN and deploys the Lambda function:
-
-```bash
+cd 03_gateway
 ./deploy.sh
 ```
 
-**What it does:**
-- Extracts `agent_arn` from `../02_runtime/.bedrock_agentcore.yaml`
-- Builds the Lambda function using `sam build`
-- Deploys using `sam deploy` with the runtime ARN as a parameter
-- Saves the deployed Lambda function ARN and deployment info to `gateway_config.json`
+This deploys the Lambda function using SAM and saves configuration to `gateway_config.json`.
 
-**Expected output:**
-```
-Building Lambda function...
-Deploying Lambda function...
-Lambda function deployed successfully!
-Lambda Function ARN: arn:aws:lambda:us-east-1:123456789012:function:AgentCoreLambdaFunction-ABC123
-Configuration saved to gateway_config.json
-```
-
-#### 2. Create Gateway (`create_gateway.py`)
-
-Creates the AgentCore Gateway with Cognito authentication:
+### Step 2: Create Gateway with Cognito
 
 ```bash
-# Auto-detect Lambda ARN from gateway_config.json
+cd 03_gateway
 uv run create_gateway.py
-
-# Or specify Lambda ARN explicitly
-uv run create_gateway.py --lambda-arn arn:aws:lambda:region:account:function:name
-
-# Force recreation of all resources
-uv run create_gateway.py --force
 ```
 
-**Command line options:**
-- `--lambda-arn ARN`: Specify Lambda function ARN explicitly (auto-detected if not provided)
-- `--force`: Force recreation of resources even if they already exist
+This creates the Gateway with OAuth authentication and Lambda target integration.
 
-**What it does:**
-- Reads Lambda function ARN from `gateway_config.json` or uses provided ARN
-- Creates Cognito user pool and OAuth configuration
-- Creates AgentCore Gateway with Cognito authorizer
-- Adds Lambda function as a target with `aws_cost_estimation` tool
-- Saves complete configuration to `gateway_config.json`
-
-**Expected output:**
-```
-INFO: Starting AgentCore Gateway setup...
-INFO: Using Lambda ARN: arn:aws:lambda:us-east-1:123456789012:function:name
-INFO: Creating Cognito user pool...
-INFO: Creating AgentCore Gateway...
-INFO: Adding Lambda target to Gateway...
-INFO: Gateway created successfully!
-INFO: Gateway URL: https://abc123.gateway.us-east-1.amazonaws.com/mcp
-INFO: Configuration saved to gateway_config.json
-```
-
-#### 3. Test Gateway (`test_gateway.py`)
-
-Tests the complete Gateway integration:
+### Step 3: Test Gateway Integration
 
 ```bash
-# Test using direct API calls (default)
-uv run test_gateway.py
-
-# Test using MCP protocol via Strands
+cd 03_gateway
+# Test with MCP protocol
 uv run test_gateway.py --tests mcp
 
-# Test using direct API calls explicitly
+# Test with direct API calls
 uv run test_gateway.py --tests api
 ```
 
-**Command line options:**
-- `--tests {api,mcp}`: Type of test to run (default: api)
-  - `api`: Direct API calls to the Gateway
-  - `mcp`: MCP client via Strands framework
+## Key Implementation Pattern
 
-**What it does:**
-- Reads gateway configuration from `gateway_config.json`
-- Obtains OAuth token from Cognito
-- Tests the Gateway using either direct API calls or MCP protocol
-- Calls `aws_cost_estimation` tool with sample architecture descriptions
-- Displays cost estimation results
+### Lambda Function with AgentCore Runtime Integration
 
-**Expected output for API test:**
-```
-INFO: Gateway URL: https://abc123.gateway.us-east-1.amazonaws.com/mcp
-INFO: Successfully obtained OAuth token
-
-=== Testing Gateway with Direct API Calls ===
-Available tools: ['aws_cost_estimation']
-
-Cost estimation result:
-## AWS Cost Estimation
-
-Based on your serverless architecture:
-
-### Monthly Cost Breakdown:
-- Lambda: $20.00 (1M requests)
-- API Gateway: $3.50
-- DynamoDB: $25.00 (on-demand)
-- S3: $5.00 (storage)
-
-**Total Estimated Monthly Cost: $53.50**
+```python
+def lambda_handler(event, context):
+    """Handle aws_cost_estimation tool invocation from Gateway"""
+    try:
+        # Extract tool name from Gateway context
+        tool_name = context.client_context.custom.get('bedrockAgentCoreToolName', '')
+        
+        # Remove Gateway prefix (format: targetName___toolName)
+        if "___" in tool_name:
+            tool_name = tool_name.split("___")[-1]
+        
+        # Verify this is the aws_cost_estimation tool
+        if tool_name != 'aws_cost_estimation':
+            return {'statusCode': 400, 'body': f"Unknown tool: {tool_name}"}
+        
+        # Get architecture description from event
+        architecture_description = event.get('architecture_description', '')
+        
+        # Call the AgentCore Runtime
+        result = invoke_cost_estimator_runtime(runtime_arn, architecture_description)
+        
+        return {'statusCode': 200, 'body': result}
+        
+    except Exception as e:
+        logger.exception(f"Error processing request: {e}")
+        return {'statusCode': 500, 'body': f"Error: {str(e)}"}
 ```
 
-#### 4. Simple Lambda Test (`test_lambda_simple.py`)
+### Gateway Creation with Cognito OAuth
 
-Test the Lambda function logic directly without Docker:
-
-```bash
-uv run test_lambda_simple.py
+```python
+def main():
+    """Create Gateway with Lambda target and Cognito authentication"""
+    # Initialize Gateway client
+    client = GatewayClient(region_name=boto3.Session().region_name)
+    
+    # Step 1: Create Cognito OAuth authorizer
+    cognito_result = client.create_oauth_authorizer_with_cognito("AWSCostEstimationResourceServer")
+    
+    # Step 2: Create MCP Gateway
+    gateway = client.create_mcp_gateway(
+        name="AWSCostEstimationGateway",
+        role_arn=None,
+        authorizer_config=cognito_result["authorizer_config"],
+        enable_semantic_search=False
+    )
+    
+    # Step 3: Add Lambda target with tool schema
+    tool_schema = [{
+        "name": "aws_cost_estimation",
+        "description": "Estimate AWS costs for a given architecture description",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "architecture_description": {
+                    "type": "string",
+                    "description": "Description of the AWS architecture to estimate costs for"
+                }
+            },
+            "required": ["architecture_description"]
+        }
+    }]
+    
+    create_request = {
+        "gatewayIdentifier": gateway["gatewayId"],
+        "name": "AWSCostEstimationLambdaTarget",
+        "targetConfiguration": {
+            "mcp": {
+                "lambda": {
+                    "lambdaArn": lambda_arn,
+                    "toolSchema": {"inlinePayload": tool_schema}
+                }
+            }
+        },
+        "credentialProviderConfigurations": [{"credentialProviderType": "GATEWAY_IAM_ROLE"}]
+    }
 ```
 
-**What it does:**
-- Tests the Lambda function logic directly without Gateway context
-- Simulates the AgentCore Gateway metadata in the Lambda context
-- Useful for debugging Lambda function issues independently
+### MCP Client Testing Pattern
+
+```python
+def test_with_mcp_client(gateway_url, token):
+    """Test the Gateway using MCP client via Strands Agents"""
+    def create_streamable_http_transport():
+        return streamablehttp_client(
+            gateway_url, 
+            headers={"Authorization": f"Bearer {token}"}
+        )
+    
+    # Create MCP client with authentication
+    mcp_client = MCPClient(create_streamable_http_transport)
+    
+    with mcp_client:
+        # List available tools
+        tools = get_full_tools_list(mcp_client)
+        tool_names = [tool.tool_name for tool in tools]
+        
+        # Find and invoke cost estimation tool
+        for tool in tools:
+            if 'aws_cost_estimation' in tool.tool_name:
+                result = mcp_client.call_tool_sync(
+                    tool_name=tool.tool_name,
+                    arguments={"architecture_description": "A web application with ALB + 2x EC2 t3.medium"}
+                )
+                return result.content
+```
+
+## Usage Example
+
+```python
+# Deploy Lambda and create Gateway
+./deploy.sh
+uv run create_gateway.py
+
+# Test cost estimation via Gateway
+from test_gateway import test_with_mcp_client, get_oauth_token
+
+config = load_config()
+token = get_oauth_token(config)
+result = test_with_mcp_client(config['gateway_url'], token)
+print(result)
+```
+
+## Integration Benefits
+
+- **Serverless architecture** - Lambda scales automatically with demand
+- **OAuth security** - Cognito provides enterprise-grade authentication
+- **MCP compatibility** - Standard protocol for tool integration
+- **Runtime reuse** - Leverages existing AgentCore Runtime deployment
+
+## References
+
+- [AgentCore Gateway Developer Guide](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html)
+- [AWS SAM Documentation](https://docs.aws.amazon.com/serverless-application-model/)
+- [Cognito OAuth Integration](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-app-integration.html)
+- [MCP Protocol Specification](https://modelcontextprotocol.io/introduction)
+
+---
+
+**Next Steps**: Use the Gateway as an MCP server in your applications or integrate with AgentCore Identity for enhanced security.

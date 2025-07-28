@@ -1,60 +1,209 @@
-# AgentCore Runtime - Agent Preparation Tool
+# AgentCore Runtime Integration
 
-## Overview
+This implementation demonstrates **AgentCore Runtime** deployment using the `prepare_agent.py` tool that automates agent preparation and seamlessly integrates with the official [bedrock-agentcore-starter-toolkit](https://github.com/aws/bedrock-agentcore-starter-toolkit).
 
-This module provides `prepare_agent.py`, a helper tool that prepares your AI agents for deployment to Amazon Bedrock AgentCore Runtime. It automates the initial setup steps and seamlessly integrates with the `agentcore` CLI tools from [bedrock-agentcore-starter-toolkit](https://github.com/aws/bedrock-agentcore-starter-toolkit).
+## Process Overview
 
-## What This Tool Does
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant Prep as prepare_agent.py
+    participant IAM as AWS IAM
+    participant CLI as agentcore CLI
+    participant Runtime as AgentCore Runtime
 
-The `prepare` command handles two critical setup tasks:
+    Dev->>Prep: prepare --source-dir
+    Prep->>IAM: Create AgentCore Role
+    IAM-->>Prep: Role ARN
+    Prep->>Prep: Copy Source Files
+    Prep-->>Dev: Configure Command
+    Dev->>CLI: agentcore configure
+    CLI->>Runtime: Deploy Agent
+    Dev->>CLI: agentcore invoke
+    CLI->>Runtime: Execute Agent
+    Runtime-->>CLI: Results
+```
 
-1. **Deployment Directory Setup**: Copies your agent source files to a deployment directory
-2. **IAM Role Creation**: Creates an IAM role with all necessary AgentCore permissions following [runtime permissions documentation](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-permissions.html)
+## Prerequisites
 
-## Usage
+1. **Agent source code** - Complete `01_code_interpreter` implementation first
+2. **AWS credentials** - With IAM permissions for role creation
+3. **AgentCore CLI** - Install [bedrock-agentcore-starter-toolkit](https://github.com/aws/bedrock-agentcore-starter-toolkit)
+4. **Dependencies** - Installed via `uv` (see pyproject.toml)
 
-**Please execute command after `cd 02_runtime`**
+## How to use
+
+### File Structure
+
+```
+02_runtime/
+├── README.md                      # This documentation
+├── prepare_agent.py               # Agent preparation tool
+├── deployment/                    # Generated deployment directory
+│   ├── invoke.py                 # Runtime entrypoint
+│   ├── requirements.txt          # Dependencies
+│   └── cost_estimator_agent/     # Copied source files
+└── .bedrock_agentcore.yaml       # AgentCore configuration
+```
 
 ### Step 1: Prepare Your Agent
 
 ```bash
-# From the 02_runtime directory
+cd 02_runtime
 uv run prepare_agent.py prepare --source-dir ../01_code_interpreter/cost_estimator_agent
 ```
 
-### Step 2: Use AgentCore CLI Tools
+This will create deployment directory and IAM role with all necessary AgentCore permissions.
 
-After preparation, the tool provides you with ready-to-use `agentcore` commands:
+### Step 2: Use Generated Commands
 
-```
-✓ Agent preparation completed successfully!
+The tool provides ready-to-use `agentcore` commands:
 
-Agent Name: cost_estimator_agent
-Deployment Directory: ./deployment
-Region: us-east-1
+```bash
+# Configure the agent runtime
+agentcore configure --entrypoint ./deployment/invoke.py --name cost_estimator_agent --execution-role arn:aws:iam::123456789012:role/AgentCoreRole-cost_estimator_agent --requirements-file ./deployment/requirements.txt --disable-otel --region us-east-1
 
-📋 Next Steps:
+# Launch the agent
+agentcore launch
 
-1. Configure the agent runtime:
-   agentcore configure --entrypoint ./deployment/cost_estimator_agent.py --agent-name cost_estimator_agent --execution-role arn:aws:iam::123456789012:role/AgentCoreRole-cost_estimator_agent --requirements-file ./deployment/requirements.txt --disable-otel --region us-east-1
-
-2. Launch the agent:
-   agentcore launch
-
-3. Test your agent:
-   agentcore invoke '{"prompt": "Tell me an interesting fact"}'
-
-💡 Tip: You can copy and paste the commands above directly into your terminal.
+# Test your agent
+agentcore invoke '{"prompt": "I would like to prepare small EC2 for ssh. How much does it cost?"}'
 ```
 
-## Integration with AgentCore Starter Toolkit
+## Key Implementation Pattern
 
-This tool is designed to work seamlessly with the official [bedrock-agentcore-starter-toolkit](https://github.com/aws/bedrock-agentcore-starter-toolkit). After using our `prepare` command, you'll use the toolkit's `agentcore` CLI for:
+### Agent Preparation Class
 
-- **`agentcore configure`**: Build and configure your agent runtime
-- **`agentcore launch`**: Deploy your agent to Amazon Bedrock
-- **`agentcore invoke`**: Test your deployed agent
-- **`agentcore status`**: Check deployment status
-- **`agentcore delete`**: Clean up resources when done
+```python
+class AgentPreparer:
+    """Handles preparation of agent for deployment"""
+    
+    def __init__(self, source_dir: str, region: str = DEFAULT_REGION):
+        self.source_dir = Path(source_dir)
+        self.region = region
+        self.iam_client = boto3.client('iam', region_name=region)
+    
+    def prepare(self) -> str:
+        """Prepare agent for deployment by creating deployment directory and IAM role"""
+        # Create deployment directory
+        deployment_dir = self.create_source_directory()
+        
+        # Create IAM role
+        role_info = self.create_agentcore_role()
 
-For detailed documentation on these commands, refer to the [official AgentCore documentation](https://github.com/aws/bedrock-agentcore-starter-toolkit).
+        # Build agentcore configure command
+        command = f"agentcore configure --entrypoint {deployment_dir}/invoke.py " \
+                    f"--name {self.agent_name} " \
+                    f"--execution-role {role_info['role_arn']} " \
+                    f"--requirements-file {deployment_dir}/requirements.txt " \
+                    f"--disable-otel " \
+                    f"--region {self.region}"
+
+        return command
+```
+
+### IAM Role Creation with AgentCore Permissions
+
+```python
+def create_agentcore_role(self) -> dict:
+    """Create IAM role with AgentCore permissions"""
+    role_name = f"AgentCoreRole-{self.agent_name}"
+    
+    # Trust policy for bedrock-agentcore service
+    trust_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "Service": "bedrock-agentcore.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole",
+                "Condition": {
+                    "StringEquals": {
+                        "aws:SourceAccount": account_id
+                    },
+                    "ArnLike": {
+                        "aws:SourceArn": f"arn:aws:bedrock-agentcore:{self.region}:{account_id}:*"
+                    }
+                }
+            }
+        ]
+    }
+    
+    # Execution policy with comprehensive AgentCore permissions
+    execution_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "BedrockPermissions",
+                "Effect": "Allow",
+                "Action": [
+                    "bedrock:InvokeModel",
+                    "bedrock:InvokeModelWithResponseStream"
+                ],
+                "Resource": "*"
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "bedrock-agentcore:CreateCodeInterpreter",
+                    "bedrock-agentcore:StartCodeInterpreterSession",
+                    "bedrock-agentcore:InvokeCodeInterpreter",
+                    "bedrock-agentcore:StopCodeInterpreterSession",
+                    "bedrock-agentcore:DeleteCodeInterpreter"
+                ],
+                "Resource": "arn:aws:bedrock-agentcore:*:*:*"
+            }
+        ]
+    }
+```
+
+### Runtime Entrypoint Pattern
+
+```python
+# deployment/invoke.py
+from bedrock_agentcore.runtime import BedrockAgentCoreApp
+
+app = BedrockAgentCoreApp()
+
+@app.entrypoint
+def invoke(payload):
+    user_input = payload.get("prompt")
+    agent = AWSCostEstimatorAgent()
+    return agent.estimate_costs(user_input)
+
+if __name__ == "__main__":
+    app.run()
+```
+
+## Usage Example
+
+```python
+# Prepare agent for deployment
+preparer = AgentPreparer("../01_code_interpreter/cost_estimator_agent")
+configure_command = preparer.prepare()
+
+# Use generated command to deploy
+# agentcore configure --entrypoint ./deployment/invoke.py ...
+# agentcore launch
+# agentcore invoke '{"prompt": "Cost for t3.micro EC2?"}'
+```
+
+## Integration Benefits
+
+- **Automated setup** - Handles deployment directory and IAM role creation
+- **Permission compliance** - Follows official AgentCore runtime permissions
+- **CLI integration** - Seamless workflow with agentcore toolkit
+- **Error handling** - Comprehensive logging and error management
+
+## References
+
+- [AgentCore Runtime Developer Guide](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime.html)
+- [Runtime Permissions Documentation](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-permissions.html)
+- [Bedrock AgentCore Starter Toolkit](https://github.com/aws/bedrock-agentcore-starter-toolkit)
+- [AgentCore CLI Documentation](https://github.com/aws/bedrock-agentcore-starter-toolkit)
+
+---
+
+**Next Steps**: Deploy your prepared agent using the generated `agentcore` commands and integrate runtime capabilities into your applications.
