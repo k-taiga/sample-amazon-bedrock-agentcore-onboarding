@@ -34,19 +34,12 @@
       "command": "uvx",
       "args": ["strands-agents-mcp-server"]
     },
-    "awslabs.aws-serverless-mcp-server": {
-      "command": "uvx",
+    "aws-knowledge-mcp-server": {
+      "command": "npx",
       "args": [
-        "awslabs.aws-serverless-mcp-server@latest",
-        "--allow-write",
-        "--allow-sensitive-data-access"
-      ],
-      "env": {
-          "AWS_PROFILE": "default",
-          "AWS_REGION": "us-east-1"
-        },
-      "disabled": false,
-      "autoApprove": []
+          "mcp-remote",
+          "https://knowledge-mcp.global.api.aws"
+      ]
     }
   }
 }
