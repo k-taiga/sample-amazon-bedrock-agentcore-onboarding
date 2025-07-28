@@ -1,8 +1,8 @@
 # AgentCore Identity Integration
 
-This implementation demonstrates **AgentCore Identity** with OAuth 2.0 authentication using existing Cognito M2M setup from the Gateway. The `@requires_access_token` decorator provides transparent token management for secure agent operations.
+This implementation demonstrates **AgentCore Identity** with OAuth 2.0 authentication using the existing Cognito M2M setup from the Gateway. The `@requires_access_token` decorator provides transparent token management for secure agent operations.
 
-## Architecture Flow
+## Process Overview
 
 ```mermaid
 sequenceDiagram
@@ -28,7 +28,17 @@ sequenceDiagram
 2. **AWS credentials** - With `bedrock-agentcore-control` permissions
 3. **Dependencies** - Installed via `uv` (see pyproject.toml)
 
-## Quick Setup
+## How to use
+
+### File Structure
+
+```
+04_identity/
+├── README.md                      # This documentation
+├── setup_credential_provider.py   # OAuth2 provider setup
+├── agent_with_identity.py         # Main agent implementation  
+└── test_identity_agent.py         # Test suite
+```
 
 ### Step 1: Create OAuth2 Credential Provider
 
@@ -37,7 +47,7 @@ cd 04_identity
 uv run python setup_credential_provider.py
 ```
 
-This creates an AgentCore Identity provider using your existing Cognito configuration.
+This will create an AgentCore Identity provider using your existing Cognito configuration.
 
 ### Step 2: Test Implementation
 
@@ -46,7 +56,7 @@ cd 04_identity
 uv run python test_identity_agent.py
 ```
 
-Runs comprehensive tests including authentication, cost estimation, and token caching.
+This will run comprehensive tests including authentication, cost estimation, and token caching.
 
 ## Key Implementation Pattern
 
@@ -62,7 +72,7 @@ from bedrock_agentcore.identity.auth import requires_access_token
     force_authentication=False
 )    
 async def get_token(*, access_token: str) -> str:
-    """Token automatically injected by decorator"""
+    """Access token is automatically injected by the decorator"""
     return access_token
 ```
 
@@ -79,16 +89,6 @@ mcp_client = MCPClient(lambda: streamablehttp_client(
 ))
 ```
 
-## File Structure
-
-```
-04_identity/
-├── README.md                      # This documentation
-├── setup_credential_provider.py   # OAuth2 provider setup
-├── agent_with_identity.py         # Main agent implementation  
-└── test_identity_agent.py         # Test suite
-```
-
 ## Usage Example
 
 ```python
@@ -96,7 +96,7 @@ from agent_with_identity import AgentWithIdentity
 
 agent = AgentWithIdentity()
 result = await agent.estimate_costs("""
-    Web application with:
+    A web application with:
     - ALB + 2x EC2 t3.medium
     - RDS MySQL db.t3.micro
     - S3 + CloudFront
@@ -110,22 +110,6 @@ print(result)
 - **Automatic lifecycle management** - AgentCore handles expiration
 - **Infrastructure reuse** - Leverages existing Gateway security
 - **M2M authentication** - Suitable for automated systems
-
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Credential provider not found | Run `setup_credential_provider.py` |
-| Authentication failed | Check AWS credentials and Cognito config |
-| Gateway connection failed | Verify Gateway URL and deployment |
-
-Enable debug logging: `logging.basicConfig(level=logging.DEBUG)`
-
-## Performance
-
-- **First request**: ~2-3 seconds (OAuth flow)
-- **Cached requests**: ~0.1 seconds
-- **Token lifetime**: ~1 hour (automatic refresh)
 
 ## References
 
