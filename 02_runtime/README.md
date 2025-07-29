@@ -1,5 +1,7 @@
 # AgentCore Runtime Integration
 
+[English](README.md) / [日本語](README_ja.md)
+
 This implementation demonstrates **AgentCore Runtime** deployment using the `prepare_agent.py` tool that automates agent preparation and seamlessly integrates with the official [bedrock-agentcore-starter-toolkit](https://github.com/aws/bedrock-agentcore-starter-toolkit).
 
 ## Process Overview

@@ -1,5 +1,7 @@
 # Amazon Bedrock AgentCore Onboarding
 
+[English](README.md) / [日本語](README_ja.md)
+
 **Practical, simple, and runnable examples** to onboard every developer to Amazon Bedrock AgentCore effectively. This project provides a progressive learning path through hands-on implementations of core AgentCore capabilities.
 
 ## Overview
@@ -118,29 +120,6 @@ sample-amazon-bedrock-agentcore-onboarding/
 - **Python 3.11+** with `uv` package manager
 - **AWS CLI** configured with appropriate permissions
 - **AWS Account** with access to Bedrock AgentCore (Preview)
-
-### AWS Permissions
-Your AWS credentials need the following permissions:
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "bedrock-agentcore:*",
-                "bedrock:InvokeModel",
-                "lambda:*",
-                "cognito-idp:*",
-                "logs:*",
-                "cloudwatch:*",
-                "iam:PassRole"
-            ],
-            "Resource": "*"
-        }
-    ]
-}
-```
 
 ### Quick Setup
 ```bash

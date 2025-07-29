@@ -1,5 +1,7 @@
 # AgentCore Gateway Integration
 
+[English](README.md) / [日本語](README_ja.md)
+
 This implementation demonstrates **AgentCore Gateway** with Lambda integration that exposes the cost estimator agent from `02_runtime` as an MCP tool with Cognito OAuth authentication.
 
 ## Process Overview

@@ -1,5 +1,7 @@
 # AgentCore Memory Integration
 
+[English](README.md) / [日本語](README_ja.md)
+
 This implementation demonstrates **AgentCore Memory** capabilities by enhancing the AWS Cost Estimator with both short-term and long-term memory features. The `AgentWithMemory` class provides practical examples of memory usage patterns for cost estimation, comparison, and personalized recommendations.
 
 ## Process Overview

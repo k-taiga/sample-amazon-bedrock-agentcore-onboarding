@@ -1,5 +1,7 @@
 # AgentCore Observability Integration
 
+[English](README.md) / [日本語](README_ja.md)
+
 This implementation demonstrates **AgentCore Observability** with Amazon CloudWatch integration for comprehensive monitoring, tracing, and debugging of AI agents in production environments. AgentCore provides real-time visibility into agent performance through standardized OpenTelemetry (OTEL) compatible telemetry data.
 
 ## Process Overview

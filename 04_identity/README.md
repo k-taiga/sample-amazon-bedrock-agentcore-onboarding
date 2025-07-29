@@ -1,5 +1,7 @@
 # AgentCore Identity Integration
 
+[English](README.md) / [日本語](README_ja.md)
+
 This implementation demonstrates **AgentCore Identity** with OAuth 2.0 authentication using the existing Cognito M2M setup from the Gateway. The `@requires_access_token` decorator provides transparent token management for secure agent operations.
 
 ## Process Overview
