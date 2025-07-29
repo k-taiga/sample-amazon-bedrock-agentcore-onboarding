@@ -17,14 +17,14 @@ agents:
       protocol_configuration:
         server_protocol: HTTP
       observability:
-        enabled: false
+        enabled: true
     bedrock_agentcore:
       agent_id: cost_estimator_agent-t3yYLdGyXu
       agent_arn: arn:aws:bedrock-agentcore:us-east-1:872515288562:runtime/cost_estimator_agent-t3yYLdGyXu
       agent_session_id: a86335a1-7e4b-452c-9f9a-476637635acf
     codebuild:
-      project_name: null
-      execution_role: null
-      source_bucket: null
+      project_name: bedrock-agentcore-cost_estimator_agent-builder
+      execution_role: arn:aws:iam::872515288562:role/AmazonBedrockAgentCoreSDKCodeBuild-us-east-1-b638123cce
+      source_bucket: bedrock-agentcore-codebuild-sources-872515288562-us-east-1
     authorizer_configuration: null
     oauth_configuration: null

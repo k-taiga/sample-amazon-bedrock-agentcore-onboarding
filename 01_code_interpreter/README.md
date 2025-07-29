@@ -151,18 +151,18 @@ async def estimate_costs_stream(self, architecture_description: str) -> AsyncGen
     try:
         with self._estimation_agent() as agent:
             # Implement proper delta handling to prevent duplicates
-            accumulated_content = ""
+            previous_output = ""
             
             async for event in agent.stream_async(prompt, callback_handler=null_callback_handler):
                 if "data" in event:
                     current_chunk = str(event["data"])
                     
                     # Handle delta calculation following Bedrock best practices
-                    if current_chunk.startswith(accumulated_content):
+                    if current_chunk.startswith(previous_output):
                         # Extract only the new part
-                        delta_content = current_chunk[len(accumulated_content):]
+                        delta_content = current_chunk[len(previous_output):]
                         if delta_content:
-                            accumulated_content = current_chunk
+                            previous_output = current_chunk
                             yield {"data": delta_content}
     except Exception as e:
         yield {"error": True, "data": f"❌ Streaming failed: {e}"}

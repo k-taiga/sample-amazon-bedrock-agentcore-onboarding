@@ -78,8 +78,8 @@ def parse_arguments():
         '--tests',
         nargs='+',
         choices=['regular', 'streaming', 'debug'],
-        default=['regular', 'streaming', 'debug'],
-        help='Which tests to run (default: all tests)'
+        default=['regular'],
+        help='Which tests to run (default: regular)'
     )
     
     parser.add_argument(

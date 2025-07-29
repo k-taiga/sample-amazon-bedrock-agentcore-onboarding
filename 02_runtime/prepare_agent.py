@@ -66,7 +66,6 @@ class AgentPreparer:
                     f"--name {self.agent_name} " \
                     f"--execution-role {role_info['role_arn']} " \
                     f"--requirements-file {deployment_dir}/requirements.txt " \
-                    f"--disable-otel " \
                     f"--region {self.region} " \
 
         return command

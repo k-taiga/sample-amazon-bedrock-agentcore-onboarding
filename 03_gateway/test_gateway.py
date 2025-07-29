@@ -18,15 +18,10 @@ from bedrock_agentcore_starter_toolkit.operations.gateway.client import GatewayC
 
 # Configure logging with more verbose output
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-# Enable debug logging for key components
-logging.getLogger('mcp').setLevel(logging.DEBUG)
-logging.getLogger('strands').setLevel(logging.DEBUG)
-logging.getLogger('httpx').setLevel(logging.DEBUG)
 
 
 def get_oauth_token(config):
@@ -50,7 +45,7 @@ def get_oauth_token(config):
     return token
 
 
-def test_with_mcp_client(gateway_url, token):
+def test_with_mcp_client(gateway_url, token, architecture_description):
     """Test the Gateway using MCP client via Strands Agents"""
     logger.info("Testing Gateway with MCP client (Strands Agents)...")
     
@@ -104,14 +99,13 @@ def test_with_mcp_client(gateway_url, token):
             logger.info("Creating agent with MCP tools...")
             agent = Agent(
                 tools=tools,
-                system_prompt="You are a helpful assistant that can estimate AWS costs."
+                system_prompt="You are a helpful assistant that can estimate AWS costs. Please answer in customer's language."
             )
             
             # Test by asking the agent to use the aws_cost_estimation tool
             logger.info("\nAsking agent to estimate AWS costs...")
             
-            prompt = ("Please use the aws_cost_estimation tool to estimate costs for this architecture: " +
-                     "[quick]A simple web application with an Application Load Balancer, 2 EC2 t3.medium instances, and an RDS MySQL database in us-east-1.")
+            prompt = f"Please use the aws_cost_estimation tool to estimate costs for this architecture: {architecture_description}"
             
             result = agent(prompt)
             
@@ -123,10 +117,10 @@ def test_with_mcp_client(gateway_url, token):
     except Exception as e:
         logger.error(f"MCP client test failed: {e}")
         logger.info("Falling back to direct API test...")
-        test_with_direct_api(gateway_url, token)
+        test_with_direct_api(gateway_url, token, architecture_description)
 
 
-def test_with_direct_api(gateway_url, token):
+def test_with_direct_api(gateway_url, token, architecture_description):
     """Test the Gateway using direct MCP API calls"""
     logger.info("Testing Gateway with direct API calls...")
     
@@ -181,7 +175,7 @@ def test_with_direct_api(gateway_url, token):
         "params": {
             "name": cost_estimation_tool,
             "arguments": {
-                "architecture_description": "A serverless application using Lambda (1M requests/month), API Gateway, DynamoDB, and S3 for storage"
+                "architecture_description": architecture_description
             }
         }
     }
@@ -204,6 +198,12 @@ def main():
         default='api',
         help='Type of test to run: api (direct API calls) or mcp (MCP client via Strands). Default: api'
     )
+    parser.add_argument(
+        '--architecture',
+        type=str,
+        default="A simple web application with an Application Load Balancer, 2 EC2 t3.medium instances, and an RDS MySQL database in us-east-1.",
+        help='Architecture description for cost estimation. Default: A simple web application with ALB, 2 EC2 instances, and RDS MySQL'
+    )
     args = parser.parse_args()
     
     try:
@@ -213,6 +213,7 @@ def main():
         
         gateway_url = config['gateway_url']
         logger.info(f"Gateway URL: {gateway_url}")
+        logger.info(f"Architecture: {args.architecture}")
         
         # Get OAuth token using the simplified method
         token = get_oauth_token(config)
@@ -222,13 +223,13 @@ def main():
             logger.info("\n" + "="*60)
             logger.info("Test: Direct API calls")
             logger.info("="*60)
-            test_with_direct_api(gateway_url, token)
+            test_with_direct_api(gateway_url, token, args.architecture)
         
         elif args.tests == 'mcp':
             logger.info("\n" + "="*60)
             logger.info("Test: MCP Client (Strands Agents)")
             logger.info("="*60)
-            test_with_mcp_client(gateway_url, token)
+            test_with_mcp_client(gateway_url, token, args.architecture)
         
     except FileNotFoundError:
         logger.error("gateway_config.json not found. Please run python create_gateway.py first.")

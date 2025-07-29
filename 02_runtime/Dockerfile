@@ -10,6 +10,8 @@ RUN pip install -r deployment/requirements.txt
 
 
 
+RUN pip install aws-opentelemetry-distro>=0.10.0
+
 
 # Set AWS region environment variable
 
@@ -32,4 +34,4 @@ COPY . .
 
 # Use the full module path
 
-CMD ["python", "-m", "deployment.invoke"]
+CMD ["opentelemetry-instrument", "python", "-m", "deployment.invoke"]

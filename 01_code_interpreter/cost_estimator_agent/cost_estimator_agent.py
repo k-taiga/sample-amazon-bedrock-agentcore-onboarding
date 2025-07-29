@@ -304,7 +304,7 @@ class AWSCostEstimatorAgent:
                 
                 # Implement proper delta handling to prevent duplicates
                 # This follows Amazon Bedrock ContentBlockDeltaEvent pattern
-                accumulated_content = ""
+                previous_output = ""
                 
                 agent_stream = agent.stream_async(prompt, callback_handler=null_callback_handler)
                 
@@ -313,15 +313,15 @@ class AWSCostEstimatorAgent:
                         current_chunk = str(event["data"])
                         
                         # Handle delta calculation following Bedrock best practices
-                        if current_chunk.startswith(accumulated_content):
+                        if current_chunk.startswith(previous_output):
                             # This is an incremental update - extract only the new part
-                            delta_content = current_chunk[len(accumulated_content):]
+                            delta_content = current_chunk[len(previous_output):]
                             if delta_content:  # Only yield if there's actually new content
-                                accumulated_content = current_chunk
+                                previous_output = current_chunk
                                 yield {"data": delta_content}
                         else:
                             # This is a completely new chunk or reset - yield as-is
-                            accumulated_content = current_chunk
+                            previous_output = current_chunk
                             yield {"data": current_chunk}
                     else:
                         # Pass through non-data events (errors, metadata, etc.)

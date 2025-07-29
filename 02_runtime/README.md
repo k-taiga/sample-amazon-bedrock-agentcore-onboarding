@@ -37,20 +37,19 @@ sequenceDiagram
 
 ```
 02_runtime/
-├── README.md                      # This documentation
-├── prepare_agent.py               # Agent preparation tool
-├── deployment/                    # Generated deployment directory
-│   ├── invoke.py                 # Runtime entrypoint
-│   ├── requirements.txt          # Dependencies
-│   └── cost_estimator_agent/     # Copied source files
-└── .bedrock_agentcore.yaml       # AgentCore configuration
+├── README.md                    # This documentation
+├── prepare_agent.py             # Agent preparation tool
+└── deployment/                  # Generated deployment directory
+   ├── invoke.py                 # Runtime entrypoint
+   ├── requirements.txt          # Dependencies
+   └── cost_estimator_agent/     # Copied source files
 ```
 
 ### Step 1: Prepare Your Agent
 
 ```bash
 cd 02_runtime
-uv run prepare_agent.py prepare --source-dir ../01_code_interpreter/cost_estimator_agent
+uv run prepare_agent.py --source-dir ../01_code_interpreter/cost_estimator_agent
 ```
 
 This will create deployment directory and IAM role with all necessary AgentCore permissions.
@@ -96,7 +95,6 @@ class AgentPreparer:
                     f"--name {self.agent_name} " \
                     f"--execution-role {role_info['role_arn']} " \
                     f"--requirements-file {deployment_dir}/requirements.txt " \
-                    f"--disable-otel " \
                     f"--region {self.region}"
 
         return command
