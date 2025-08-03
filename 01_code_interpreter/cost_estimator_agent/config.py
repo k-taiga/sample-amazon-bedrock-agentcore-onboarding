@@ -58,9 +58,6 @@ Please analyze this architecture and provide an AWS cost estimate:
 DEFAULT_MODEL = "us.anthropic.claude-3-7-sonnet-20250219-v1:0" 
 
 # AWS regions
-DEFAULT_REGION = "us-east-1"
-
-# AWS regions
 DEFAULT_PROFILE = "default"
 
 # Logging configuration

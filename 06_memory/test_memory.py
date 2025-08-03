@@ -93,7 +93,7 @@ class AgentWithMemory:
     - Long-term memory: Learns user preferences and decision patterns over time
     """
     
-    def __init__(self, actor_id: str, region: str = "us-west-2", force_recreate: bool = False):
+    def __init__(self, actor_id: str, region: str = "", force_recreate: bool = False):
         """
         Initialize the agent with memory capabilities
         
@@ -104,6 +104,9 @@ class AgentWithMemory:
         """
         self.actor_id = actor_id
         self.region = region
+        if not self.region:
+            # Use default region from boto3 session if not specified
+            self.region = boto3.Session().region_name
         self.force_recreate = force_recreate
         self.memory_id = None
         self.memory = None

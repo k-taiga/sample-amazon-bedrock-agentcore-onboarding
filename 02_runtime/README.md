@@ -61,14 +61,14 @@ This will create deployment directory and IAM role with all necessary AgentCore 
 The tool provides ready-to-use `agentcore` commands:
 
 ```bash
-# Configure the agent runtime
-agentcore configure --entrypoint ./deployment/invoke.py --name cost_estimator_agent --execution-role arn:aws:iam::123456789012:role/AgentCoreRole-cost_estimator_agent --requirements-file ./deployment/requirements.txt --disable-otel --region us-east-1
+# Configure the agent runtime (account id depends on your environment, please confirm outputs of prepare_agent.py)
+uv run agentcore configure --entrypoint ./deployment/invoke.py --name cost_estimator_agent --execution-role arn:aws:iam::123456789012:role/AgentCoreRole-cost_estimator_agent --requirements-file ./deployment/requirements.txt --disable-otel --region us-east-1
 
 # Launch the agent
-agentcore launch
+uv run agentcore launch
 
 # Test your agent
-agentcore invoke '{"prompt": "I would like to prepare small EC2 for ssh. How much does it cost?"}'
+uv run agentcore invoke '{"prompt": "I would like to prepare small EC2 for ssh. How much does it cost?"}'
 ```
 
 ## Key Implementation Pattern

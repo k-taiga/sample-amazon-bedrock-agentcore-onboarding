@@ -32,10 +32,13 @@ logger = logging.getLogger(__name__)
 class ObservabilityTester:
     """Test AgentCore observability with meaningful session tracking"""
     
-    def __init__(self, agent_arn: str, region: str = 'us-east-1'):
+    def __init__(self, agent_arn: str, region: str = ""):
         self.agent_arn = agent_arn
         self.region = region
-        self.client = boto3.client('bedrock-agentcore', region_name=region)
+        if not self.region:
+            # Use default region from boto3 session if not specified
+            self.region = boto3.Session().region_name
+        self.client = boto3.client('bedrock-agentcore', region_name=self.region)
     
     def generate_session_id(self, user_id: str) -> str:
         """Generate meaningful session ID with minimum length requirement"""

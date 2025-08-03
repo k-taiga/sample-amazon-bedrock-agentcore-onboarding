@@ -27,7 +27,6 @@ from cost_estimator_agent.config import (
     SYSTEM_PROMPT,
     COST_ESTIMATION_PROMPT,
     DEFAULT_MODEL,
-    DEFAULT_REGION,
     LOG_FORMAT
 )
 
@@ -54,7 +53,7 @@ class AWSCostEstimatorAgent:
     - Strands Agents framework for clean implementation
     """
     
-    def __init__(self, region: str = DEFAULT_REGION):
+    def __init__(self, region: str = ""):
         """
         Initialize the cost estimation agent
         
@@ -62,6 +61,9 @@ class AWSCostEstimatorAgent:
             region: AWS region for AgentCore Code Interpreter
         """
         self.region = region
+        if not self.region:
+            # Use default region from boto3 session if not specified
+            self.region = boto3.Session().region_name
         self.code_interpreter = None
         
         logger.info(f"Initializing AWS Cost Estimator Agent in region: {region}")

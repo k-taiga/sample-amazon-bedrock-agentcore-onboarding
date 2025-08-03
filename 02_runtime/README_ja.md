@@ -61,14 +61,14 @@ uv run prepare_agent.py --source-dir ../01_code_interpreter/cost_estimator_agent
 ツールは使用可能な`agentcore`コマンドを提供します：
 
 ```bash
-# エージェントランタイムを設定
-agentcore configure --entrypoint ./deployment/invoke.py --name cost_estimator_agent --execution-role arn:aws:iam::123456789012:role/AgentCoreRole-cost_estimator_agent --requirements-file ./deployment/requirements.txt --disable-otel --region us-east-1
+# エージェントランタイムを設定 (アカウント id は実行環境に依存します。 `prepare_agent.py` の実行結果を確認してください)
+uv run agentcore configure --entrypoint ./deployment/invoke.py --name cost_estimator_agent --execution-role arn:aws:iam::123456789012:role/AgentCoreRole-cost_estimator_agent --requirements-file ./deployment/requirements.txt --disable-otel --region us-east-1
 
 # エージェントを起動
-agentcore launch
+uv run agentcore launch
 
 # エージェントをテスト
-agentcore invoke '{"prompt": "SSH用の小さなEC2を準備したいです。コストはいくらですか？"}'
+uv run agentcore invoke '{"prompt": "SSH用の小さなEC2を準備したいです。コストはいくらですか？"}'
 ```
 
 ## 主要な実装パターン
