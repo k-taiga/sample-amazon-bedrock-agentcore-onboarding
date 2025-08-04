@@ -91,7 +91,7 @@ def setup_oauth2_credential_provider(provider_name: str = PROVIDER_NAME):
             if provider['name'] == provider_name:
                 logger.info(f"✅ Credential provider '{provider_name}' already exists")
                 logger.info(f"   ARN: {provider['credentialProviderArn']}")
-                logger.info(f"   Status: {provider['status']}")
+                logger.info(f"   Created: {provider['createdTime']}")
                 return True
                 
     except ClientError as e:
