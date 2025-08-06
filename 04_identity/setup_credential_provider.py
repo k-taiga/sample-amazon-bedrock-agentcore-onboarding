@@ -52,7 +52,7 @@ def setup_oauth2_credential_provider(provider_name: str = PROVIDER_NAME):
         return False
     
     try:
-        with open(config_path, 'r') as f:
+        with open(config_path, 'r', encoding='utf-8') as f:
             gateway_config = json.load(f)
         logger.info("✅ Loaded existing gateway configuration")
     except Exception as e:
@@ -150,7 +150,6 @@ def main():
         print("2. The agent will use @requires_access_token for authentication")
     else:
         print("\n❌ Setup failed. Please check the logs above.")
-        exit(1)
 
 if __name__ == "__main__":
     main()

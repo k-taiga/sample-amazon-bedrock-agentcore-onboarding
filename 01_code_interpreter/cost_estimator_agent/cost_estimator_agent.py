@@ -76,8 +76,8 @@ class AWSCostEstimatorAgent:
             self.code_interpreter.start()
             logger.info("✅ AgentCore Code Interpreter session started successfully")
         except Exception as e:
-            logger.exception(f"❌ Failed to setup Code Interpreter: {e}")
-            raise
+            logger.error(f"❌ Failed to setup Code Interpreter: {e}")
+            return  # Handle the error instead of re-raising
     
     def _get_aws_credentials(self) -> dict:
         """
@@ -120,8 +120,8 @@ class AWSCostEstimatorAgent:
             return credential_dict
             
         except Exception as e:
-            logger.exception(f"❌ Failed to get AWS credentials: {e}")
-            raise
+            logger.error(f"❌ Failed to get AWS credentials: {e}")
+            return {}  # Return empty dict as fallback
 
     def _setup_aws_pricing_client(self) -> MCPClient:
         """Setup AWS Pricing MCP Client with current AWS credentials"""
@@ -147,8 +147,8 @@ class AWSCostEstimatorAgent:
             logger.info("✅ AWS Pricing MCP Client setup successfully with AWS credentials")
             return aws_pricing_client
         except Exception as e:
-            logger.exception(f"❌ Failed to setup AWS Pricing MCP Client: {e}")
-            raise
+            logger.error(f"❌ Failed to setup AWS Pricing MCP Client: {e}")
+            return None  # Return None as fallback
     
     
     @tool

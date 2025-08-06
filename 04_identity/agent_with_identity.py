@@ -23,6 +23,7 @@ Usage:
 
 import asyncio
 import json
+from typing import Optional
 from strands import Agent
 from strands.tools.mcp import MCPClient
 from mcp.client.streamable_http import streamablehttp_client
@@ -60,7 +61,7 @@ class AgentWithIdentity:
             )
         
         try:
-            with open(config_path, 'r') as f:
+            with open(config_path, 'r', encoding='utf-8') as f:
                 self.gateway_config = json.load(f)
             logger.info("✅ Loaded gateway configuration")
         except Exception as e:
@@ -119,7 +120,7 @@ class AgentWithIdentity:
         # Call the decorated function to get the token
         return await _get_token()
     
-    async def estimate_costs(self, architecture_description: str) -> str:
+    async def estimate_costs(self, architecture_description: str) -> Optional[str]:
         """
         Complete flow: Get token → Create agent → Estimate costs.
         
@@ -218,7 +219,7 @@ class AgentWithIdentity:
                 
         except Exception as e:
             logger.error(f"Error during cost estimation: {e}")
-            raise
+            return None  # Return None to indicate failure
         
         return result
 

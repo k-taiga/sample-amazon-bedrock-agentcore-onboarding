@@ -1,4 +1,6 @@
 {
+  "name": "workshop-builder",
+  "description": "Workshop builder agent configuration",
   "mcpServers": {
     "AWS Core MCP Server": {
       "command": "uvx",
@@ -41,5 +43,34 @@
           "https://knowledge-mcp.global.api.aws"
       ]
     }
-  }
+  },
+  "tools": [
+	"*"
+  ],
+  "allowedTools": [
+    "fsRead",
+    "fsWrite",
+    "fsReplace",
+    "listDirectory",
+    "fileSearch"
+  ],
+  "toolsSettings": {
+    "execute_bash": {
+      "alwaysAllow": [
+        {
+          "preset": "readOnly"
+        }
+      ]
+    },
+    "use_aws": {
+      "alwaysAllow": [
+        {
+          "preset": "readOnly"
+        }
+      ]
+    }
+  },
+  "resources": [
+    "file://.amazonq/rules/principle.md"
+  ]
 }

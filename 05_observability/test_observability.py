@@ -145,7 +145,7 @@ def load_agent_arn() -> str:
     if not yaml_path.exists():
         raise FileNotFoundError(f"Configuration file not found: {yaml_path}")
     
-    with open(yaml_path, 'r') as f:
+    with open(yaml_path, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
     
     default_agent = config.get('default_agent')
@@ -190,4 +190,4 @@ def main():
 
 
 if __name__ == "__main__":
-    exit(main())
+    main()

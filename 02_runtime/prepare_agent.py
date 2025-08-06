@@ -268,7 +268,7 @@ class AgentPreparer:
                 
             except ClientError as e:
                 logger.error(f"Failed to create IAM role: {e}")
-                raise
+                return {}  # Return empty dict to indicate failure
 
             # Always ensure the execution policy is attached (for both new and existing roles)
             try:
@@ -277,14 +277,12 @@ class AgentPreparer:
                     PolicyName=f'{role_name}-ExecutionPolicy',
                     PolicyDocument=json.dumps(execution_policy)
                 )
-                
-                time.sleep(10)
                     
                 logger.info(f"Execution policy attached to role: {role_name}")
                 
             except ClientError as e:
                 logger.error(f"Failed to attach execution policy: {e}")
-                raise
+                return {}  # Return empty dict to indicate failure
 
         return {
             'agent_name': self.agent_name,

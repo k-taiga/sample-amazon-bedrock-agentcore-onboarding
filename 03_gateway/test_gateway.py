@@ -138,10 +138,11 @@ def test_with_direct_api(gateway_url, token, architecture_description):
         "params": {}
     }
     
-    response = requests.post(gateway_url, json=list_tools_request, headers=headers)
-    if response.status_code == 200:
-        tools_response = response.json()
-        logger.info(f"Tools response: {json.dumps(tools_response, indent=2)}")
+    response = requests.post(gateway_url, json=list_tools_request, headers=headers, timeout=30)
+    response.raise_for_status()  # Raise exception for HTTP error codes
+    
+    tools_response = response.json()
+    logger.info(f"Tools response: {json.dumps(tools_response, indent=2)}")
         
         # Extract tool names and find the cost estimation tool
         if 'result' in tools_response and 'tools' in tools_response['result']:
@@ -180,12 +181,11 @@ def test_with_direct_api(gateway_url, token, architecture_description):
         }
     }
     
-    response = requests.post(gateway_url, json=call_tool_request, headers=headers)
-    if response.status_code == 200:
-        tool_response = response.json()
-        logger.info(f"Tool response: {json.dumps(tool_response, indent=2)}")
-    else:
-        logger.error(f"Failed to call tool: {response.status_code} - {response.text}")
+    response = requests.post(gateway_url, json=call_tool_request, headers=headers, timeout=30)
+    response.raise_for_status()  # Raise exception for HTTP error codes
+    
+    tool_response = response.json()
+    logger.info(f"Tool response: {json.dumps(tool_response, indent=2)}")
 
 
 def main():
@@ -208,7 +208,7 @@ def main():
     
     try:
         # Load configuration
-        with open('gateway_config.json', 'r') as f:
+        with open('gateway_config.json', 'r', encoding='utf-8') as f:
             config = json.load(f)
         
         gateway_url = config['gateway_url']

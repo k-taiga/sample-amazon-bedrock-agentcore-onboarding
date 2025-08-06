@@ -191,9 +191,9 @@ def main():
             target_id = target_response["targetId"]
             logger.info(f"✓ Lambda target created: {target_id}")
             
-            # Wait for target to be ready (similar to toolkit behavior)
+            # Wait for target to be ready with 5-minute timeout
             logger.info("⏳ Waiting for target to be ready...")
-            while True:
+            for attempt in range(60):  # 5 minutes max (60 * 5s)
                 target_status = bedrock_client.get_gateway_target(
                     gatewayIdentifier=gateway["gatewayId"],
                     targetId=target_id
@@ -203,7 +203,10 @@ def main():
                     break
                 elif target_status["status"] == "FAILED":
                     raise Exception(f"Target creation failed: {target_status}")
-                time.sleep(5)
+                elif attempt < 59:  # Don't sleep on last attempt
+                    time.sleep(5)
+            else:
+                raise Exception("Target failed to become ready within 5 minutes")
             
             logger.info(f"Lambda target created: {target_id}")
             
@@ -218,7 +221,7 @@ def main():
         
     except Exception as e:
         logger.error(f"Gateway setup failed: {e}")
-        raise
+        return  # Handle error without re-raising
 
 
 def load_lambda_arn():
