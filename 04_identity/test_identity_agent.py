@@ -43,14 +43,7 @@ async def test_identity_protected_estimation():
     print("-" * 50)
     
     # Test architecture description
-    test_architecture = """
-    [quick] A simple web application with:
-    - Application Load Balancer
-    - 2x EC2 t3.medium instances
-    - RDS MySQL db.t3.micro database
-    - S3 bucket for static assets
-    - CloudFront distribution
-    """
+    test_architecture = "[quick] Amazon Translate cost for 1 book."
     
     print(f"Architecture: {test_architecture.strip()}")
     print("-" * 50)

@@ -222,36 +222,3 @@ class AgentWithIdentity:
             return None  # Return None to indicate failure
         
         return result
-
-async def main():
-    """Example usage of the AgentWithIdentity class"""
-    
-    # Example architecture for testing
-    test_architecture = """
-    A simple web application with:
-    - Application Load Balancer
-    - 2x EC2 t3.medium instances in different AZs
-    - RDS MySQL db.t3.micro database with Multi-AZ
-    - S3 bucket for static assets (100GB storage)
-    - CloudFront distribution
-    - Route 53 hosted zone
-    """
-    
-    print("🚀 Testing AgentCore Identity integration...")
-    print("=" * 60)
-    
-    try:
-        agent = AgentWithIdentity()
-        result = await agent.estimate_costs(test_architecture)
-        
-        print("\n✅ Cost Estimation Result:")
-        print("=" * 60)
-        print(result)
-        print("=" * 60)
-        
-    except Exception as e:
-        logger.exception(f"❌ Test failed: {e}")
-        raise
-
-if __name__ == "__main__":
-    asyncio.run(main())

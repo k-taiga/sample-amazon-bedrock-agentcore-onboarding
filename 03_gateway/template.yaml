@@ -22,8 +22,7 @@ Resources:
       CodeUri: src/
       Handler: app.lambda_handler
       Description: Lambda function that integrates with AgentCore Runtime
-      ReservedConcurrentExecutions: 10  # Limit concurrent executions for cost control
-      KmsKeyArn: alias/aws/lambda  # Use AWS managed key for environment variable encryption
+      ReservedConcurrentExecutions: 5  # Limit concurrent executions for cost control
       Environment:
         Variables:
           AGENTCORE_RUNTIME_ARN: !Ref AgentCoreRuntimeArn

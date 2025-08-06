@@ -116,8 +116,6 @@ def test_with_mcp_client(gateway_url, token, architecture_description):
             
     except Exception as e:
         logger.error(f"MCP client test failed: {e}")
-        logger.info("Falling back to direct API test...")
-        test_with_direct_api(gateway_url, token, architecture_description)
 
 
 def test_with_direct_api(gateway_url, token, architecture_description):
@@ -144,27 +142,24 @@ def test_with_direct_api(gateway_url, token, architecture_description):
     tools_response = response.json()
     logger.info(f"Tools response: {json.dumps(tools_response, indent=2)}")
         
-        # Extract tool names and find the cost estimation tool
-        if 'result' in tools_response and 'tools' in tools_response['result']:
-            tools = tools_response['result']['tools']
-            cost_estimation_tool = None
-            
-            # Find the cost estimation tool (look for tool name containing 'aws_cost_estimation')
-            for tool in tools:
-                if 'aws_cost_estimation' in tool['name']:
-                    cost_estimation_tool = tool['name']
-                    break
-            
-            if not cost_estimation_tool:
-                logger.error("No aws_cost_estimation tool found in available tools")
-                return
-                
-            logger.info(f"Found cost estimation tool: {cost_estimation_tool}")
-        else:
-            logger.error("Unexpected tools response format")
+    # Extract tool names and find the cost estimation tool
+    if 'result' in tools_response and 'tools' in tools_response['result']:
+        tools = tools_response['result']['tools']
+        cost_estimation_tool = None
+        
+        # Find the cost estimation tool (look for tool name containing 'aws_cost_estimation')
+        for tool in tools:
+            if 'aws_cost_estimation' in tool['name']:
+                cost_estimation_tool = tool['name']
+                break
+        
+        if not cost_estimation_tool:
+            logger.error("No aws_cost_estimation tool found in available tools")
             return
+            
+        logger.info(f"Found cost estimation tool: {cost_estimation_tool}")
     else:
-        logger.error(f"Failed to list tools: {response.status_code} - {response.text}")
+        logger.error("Unexpected tools response format")
         return
     
     # Call the tool using the dynamically acquired name

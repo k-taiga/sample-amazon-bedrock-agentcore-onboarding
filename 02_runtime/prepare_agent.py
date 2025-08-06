@@ -5,11 +5,9 @@ AgentCore Runtime - Agent Registration and Management Tool
 A simple tool for deploying AI agents to Amazon Bedrock AgentCore Runtime.
 """
 
-import os
 import json
 import shutil
 import logging
-import time
 from pathlib import Path
 import boto3
 import click
@@ -62,7 +60,7 @@ class AgentPreparer:
         role_info = self.create_agentcore_role()
 
         # Build agentcore configure command
-        command = f"agentcore configure --entrypoint {deployment_dir}/invoke.py " \
+        command = f"uv run agentcore configure --entrypoint {deployment_dir}/invoke.py " \
                     f"--name {self.agent_name} " \
                     f"--execution-role {role_info['role_arn']} " \
                     f"--requirements-file {deployment_dir}/requirements.txt " \

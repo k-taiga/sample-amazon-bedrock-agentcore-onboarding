@@ -192,21 +192,37 @@ def main():
             logger.info(f"✓ Lambda target created: {target_id}")
             
             # Wait for target to be ready with 5-minute timeout
+            max_wait = 300  # 5 minutes
+            interval = 5    # 5 seconds
+            start_time = time.time()
+            attempt = 1
+            
             logger.info("⏳ Waiting for target to be ready...")
-            for attempt in range(60):  # 5 minutes max (60 * 5s)
+            logger.info(f"⏳ Timeout: {max_wait}s, Check interval: {interval}s")
+            
+            while time.time() - start_time < max_wait:
                 target_status = bedrock_client.get_gateway_target(
                     gatewayIdentifier=gateway["gatewayId"],
                     targetId=target_id
                 )
+                logger.info(f"⏳ Attempt {attempt}: Status {target_status['status']}")
+                
                 if target_status["status"] == "READY":
-                    logger.info("✅ Target is ready")
+                    elapsed = time.time() - start_time
+                    logger.info(f"✅ Target is ready after {elapsed:.1f}s")
                     break
                 elif target_status["status"] == "FAILED":
                     raise Exception(f"Target creation failed: {target_status}")
-                elif attempt < 59:  # Don't sleep on last attempt
-                    time.sleep(5)
+                
+                remaining = max_wait - (time.time() - start_time)
+                if remaining > interval:
+                    logger.info(f"⏳ Waiting {interval}s... ({remaining:.0f}s remaining)")
+                    time.sleep(interval)
+                    attempt += 1
+                else:
+                    break
             else:
-                raise Exception("Target failed to become ready within 5 minutes")
+                raise Exception(f"Target failed to become ready within {max_wait}s")
             
             logger.info(f"Lambda target created: {target_id}")
             
@@ -283,6 +299,9 @@ def wait_for_oidc_endpoint(oidc_url, max_wait=600, interval=30):
             response = requests.get(oidc_url, timeout=10)
             logger.info(f"⏳ Attempt {attempt}: HTTP {response.status_code}")
             
+            # Raise exception for HTTP error status codes (4xx, 5xx)
+            response.raise_for_status()
+            
             if response.status_code == 200:
                 elapsed = time.time() - start_time
                 logger.info(f"✅ OIDC endpoint available after {elapsed:.1f}s")
@@ -303,6 +322,8 @@ def wait_for_oidc_endpoint(oidc_url, max_wait=600, interval=30):
             else:
                 logger.info(f"⏳ Unexpected status code: {response.status_code}")
                 
+        except requests.exceptions.HTTPError as e:
+            logger.info(f"⏳ Attempt {attempt}: HTTP error {e.response.status_code} - {e}")
         except requests.exceptions.Timeout:
             logger.info(f"⏳ Attempt {attempt}: Request timeout")
         except requests.exceptions.ConnectionError:

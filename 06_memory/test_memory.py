@@ -166,7 +166,7 @@ class AgentWithMemory:
                 logger.info(f"✅ AgentCore Memory created successfully with ID: {self.memory_id}")
 
             # Initialize Bedrock Runtime client for AI-powered features
-            self.bedrock_runtime = boto3.client('bedrock-runtime', region_name=region)
+            self.bedrock_runtime = boto3.client('bedrock-runtime', region_name=self.region)
             logger.info("✅ Bedrock Runtime client initialized")
             
             # Create the agent with cost estimation tools and callback handler
@@ -177,7 +177,6 @@ class AgentWithMemory:
             
         except Exception as e:
             logger.exception(f"❌ Failed to initialize AgentWithMemory: {e}")
-            raise
 
     def __enter__(self):
         """Context manager entry"""
@@ -264,71 +263,66 @@ class AgentWithMemory:
         Returns:
             Detailed comparison of estimates
         """
-        try:
-            logger.info("📊 Retrieving estimates for comparison...")
-            
-            if not self.memory_client or not self.memory_id:
-                return "❌ Memory not available for comparison"
-            
-            # Retrieve recent estimate events from memory
-            events = self.memory_client.list_events(
-                memory_id=self.memory_id,
-                actor_id=self.actor_id,
-                session_id=self.session_id,
-                max_results=4
-            )
-            
-            # Filter and parse estimate tool calls
-            estimates = []
-            for event in events:
-                try:
-                    # Extract payload data
-                    _input = ""
-                    _output = ""
-                    for payload in event.get('payload', []):
-                        if 'conversational' in payload:
-                            _message = payload['conversational']
-                            _role = _message.get('role', 'unknown')
-                            _content = _message.get('content')["text"]
+        logger.info("📊 Retrieving estimates for comparison...")
+        
+        if not self.memory_client or not self.memory_id:
+            return "❌ Memory not available for comparison"
+        
+        # Retrieve recent estimate events from memory
+        events = self.memory_client.list_events(
+            memory_id=self.memory_id,
+            actor_id=self.actor_id,
+            session_id=self.session_id,
+            max_results=4
+        )
+        
+        # Filter and parse estimate tool calls
+        estimates = []
+        for event in events:
+            try:
+                # Extract payload data
+                _input = ""
+                _output = ""
+                for payload in event.get('payload', []):
+                    if 'conversational' in payload:
+                        _message = payload['conversational']
+                        _role = _message.get('role', 'unknown')
+                        _content = _message.get('content')["text"]
 
-                            if _role == 'USER':
-                                _input = _content
-                            elif _role == 'ASSISTANT':
-                                _output = _content
-                        
-                        if _input and _output:
-                            estimates.append(
-                                "\n".join([
-                                    f"## Estimate",
-                                    f"**Input:**:\n{_input}",
-                                    f"**Output:**:\n{_output}"
-                                ])
-                            )
-                            _input = ""
-                            _output = ""
+                        if _role == 'USER':
+                            _input = _content
+                        elif _role == 'ASSISTANT':
+                            _output = _content
+                    
+                    if _input and _output:
+                        estimates.append(
+                            "\n".join([
+                                "## Estimate",
+                                f"**Input:**:\n{_input}",
+                                f"**Output:**:\n{_output}"
+                            ])
+                        )
+                        _input = ""
+                        _output = ""
 
-                except Exception as parse_error:
-                    logger.warning(f"Failed to parse event: {parse_error}")
-                    continue
-            
-            if not estimates:
-                return "ℹ️ No previous estimates found for comparison. Please run some estimates first."
-            
-            # Generate comparison using Bedrock
-            logger.info(f"🔍 Comparing {len(estimates)} estimates... {estimates}")
-            comparison_prompt = COMPARISON_PROMPT_TEMPLATE.format(
-                request=request,
-                estimates="\n\n".join(estimates)
-            )
-            
-            comparison_result = self._generate_with_bedrock(comparison_prompt)
-            
-            logger.info(f"✅ Comparison completed for {len(estimates)} estimates")
-            return comparison_result
-            
-        except Exception as e:
-            logger.exception(f"❌ Comparison failed: {e}")
-            return f"❌ Comparison failed: {e}"
+            except Exception as parse_error:
+                logger.warning(f"Failed to parse event: {parse_error}")
+                continue
+        
+        if not estimates:
+            raise Exception("ℹ️ No previous estimates found for comparison. Please run some estimates first.") 
+        
+        # Generate comparison using Bedrock
+        logger.info(f"🔍 Comparing {len(estimates)} estimates... {estimates}")
+        comparison_prompt = COMPARISON_PROMPT_TEMPLATE.format(
+            request=request,
+            estimates="\n\n".join(estimates)
+        )
+        
+        comparison_result = self._generate_with_bedrock(comparison_prompt)
+        
+        logger.info(f"✅ Comparison completed for {len(estimates)} estimates")
+        return comparison_result
 
     @tool
     def propose(self, requirements: str) -> str:
