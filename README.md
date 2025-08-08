@@ -169,6 +169,7 @@ aws sts get-caller-identity
 - **Dependencies**: Use `uv sync` to ensure consistent dependency versions
 
 ### Support Resources
+
 - [Amazon Bedrock AgentCore Developer Guide](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/)
 - [AWS Support](https://aws.amazon.com/support/) for account-specific issues
 - [GitHub Issues](../../issues) for project-specific questions
@@ -182,12 +183,13 @@ We welcome contributions that align with our **Implementation Principle**:
 3. **Simple and Sophisticated** - Maintain clarity while preserving functionality
 4. **Meaningful Structure** - Use descriptive names and logical organization
 
-See our [Implementation Principle](.amazonq/rules/principle.md) for detailed guidelines.
+See our [Contribution Guideline](CONTRIBUTING.md) for detailed guidelines.
+
+
+## Security
+
+See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-**Ready to start?** Begin with [01_code_interpreter](01_code_interpreter/README.md) to build your first AgentCore agent! 🚀
+This library is licensed under the MIT-0 License. See the [LICENSE](LICENSE) file for details.
