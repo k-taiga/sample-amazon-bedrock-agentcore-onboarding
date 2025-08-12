@@ -9,7 +9,7 @@ Prerequisites:
 - AWS credentials configured with bedrock-agentcore-control permissions
 
 Usage:
-    uv run python 03_identity/setup_credential_provider.py
+    uv run python 03_identity/setup_inbound_authorizer.py
 """
 
 import json
@@ -33,8 +33,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-PROVIDER_NAME = "agentcore-identity-for-runtime"
-CONFIG_FILE = Path("runtime_authorizer.json")
+PROVIDER_NAME = "inbound-identity-for-cost-estimator-agent"
+CONFIG_FILE = Path("inbound_authorizer.json")
 
 def setup_oauth2_credential_provider(provider_name: str = PROVIDER_NAME, force: bool = False) -> dict:
     """
@@ -74,7 +74,7 @@ def setup_oauth2_credential_provider(provider_name: str = PROVIDER_NAME, force: 
         logger.info("Creating Cognito OAuth authorizer...")
         gateway_client = GatewayClient(region_name=region)
         # Use simple interface for creating OAuth authorizer with Cognito from Gateway Client
-        cognito_result = gateway_client.create_oauth_authorizer_with_cognito("AWSCostEstimationAuthorizer")
+        cognito_result = gateway_client.create_oauth_authorizer_with_cognito("InboundAuthorizerForCostEstimatorAgent")
         user_pool_id = cognito_result['client_info']['user_pool_id']
         discovery_url = f"https://cognito-idp.{region}.amazonaws.com/{user_pool_id}/.well-known/openid-configuration"
         cognito_config = {

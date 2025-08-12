@@ -7,6 +7,7 @@ This script demonstrates how to:
 """
 
 import json
+import base64
 import logging
 import argparse
 import asyncio
@@ -25,7 +26,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-CONFIG_FILE = Path("runtime_authorizer.json")
+CONFIG_FILE = Path("inbound_authorizer.json")
 OAUTH_PROVIDER = ""
 OAUTH_SCOPE = ""
 RUNTIME_URL = ""
@@ -45,7 +46,9 @@ with CONFIG_FILE.open('r') as f:
 async def cost_estimator_tool(architecture_description, access_token: str) -> str:
     session_id = f"runtime-with-identity-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')}"
     if access_token:
-        logger.info(f"✅ Successfully load the access token from AgentCore Identity! {access_token}")
+        logger.info(f"✅ Successfully load the access token from AgentCore Identity!")
+        for element in access_token.split("."):
+            logger.info(f"\t{json.loads(base64.b64decode(element).decode())}")
 
     headers = {
         "Authorization": f"Bearer {access_token}",

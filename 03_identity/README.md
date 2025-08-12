@@ -37,23 +37,23 @@ sequenceDiagram
 ```
 03_identity/
 ├── README.md                      # This documentation
-├── setup_credential_provider.py   # OAuth2 provider and secure runtime setup
+├── setup_inbound_authorizer.py    # OAuth2 provider and secure runtime setup
 ├── test_identity_agent.py         # Test agent with identity authentication
-└── runtime_authorizer.json       # Configuration file (auto-generated)
+└── runtime_authorizer.json        # Configuration file (auto-generated)
 ```
 
 ### Step 1: Create OAuth2 Credential Provider and Secure Runtime
 
 ```bash
 cd 03_identity
-uv run python setup_credential_provider.py
+uv run python setup_inbound_authorizer.py
 ```
 
 This script will:
 - Create a Cognito OAuth authorizer with M2M client credentials
 - Set up an AgentCore Identity OAuth2 credential provider
 - Deploy a secure runtime with JWT authorization
-- Generate configuration in `runtime_authorizer.json`
+- Generate configuration in `inbound_authorizer.json`
 
 ### Step 2: Test Identity-Protected Agent
 

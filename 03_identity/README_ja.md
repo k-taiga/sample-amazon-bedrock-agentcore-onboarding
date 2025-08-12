@@ -37,7 +37,7 @@ sequenceDiagram
 ```
 03_identity/
 ├── README.md                      # このドキュメント
-├── setup_credential_provider.py   # OAuth2プロバイダーとセキュアランタイムセットアップ
+├── setup_inbound_authorizer.py    # OAuth2プロバイダーとセキュアランタイムセットアップ
 ├── test_identity_agent.py         # Identity認証付きテストエージェント
 └── runtime_authorizer.json       # 設定ファイル（自動生成）
 ```
@@ -46,14 +46,14 @@ sequenceDiagram
 
 ```bash
 cd 03_identity
-uv run python setup_credential_provider.py
+uv run python setup_inbound_authorizer.py
 ```
 
 このスクリプトは以下を実行します：
 - M2Mクライアント認証情報を使用したCognito OAuthオーソライザーの作成
 - AgentCore Identity OAuth2認証情報プロバイダーのセットアップ
 - JWT認証付きセキュアランタイムのデプロイ
-- `runtime_authorizer.json`での設定生成
+- `inbound_authorizer.json`での設定生成
 
 ### ステップ2: Identity保護エージェントをテスト
 
