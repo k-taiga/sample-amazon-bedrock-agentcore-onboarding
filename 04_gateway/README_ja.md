@@ -43,8 +43,8 @@ sequenceDiagram
 ```
 04_gateway/
 ├── README.md                      # このドキュメント
-├── template.yaml                  # Lambda用SAMテンプレート
 ├── src/app.py                     # Lambda関数実装
+├── template.yaml                  # Lambda用SAMテンプレート
 ├── deploy.sh                      # Lambdaデプロイスクリプト
 ├── setup_outbound_gateway.py      # Cognito付きGatewayセットアップ
 ├── test_gateway.py                # Strands AgentでのGatewayテスト
@@ -59,6 +59,7 @@ cd 04_gateway
 ```
 
 これにより、SESメール機能付きのLambda関数がSAMを使用してデプロイされ、設定が`outbound_gateway.json`に保存されます。
+Amazon SESでメールアドレスを検証してください。
 
 ### ステップ2: Outbound Gatewayを作成
 
@@ -286,4 +287,4 @@ uv run test_gateway.py --architecture "ALBと2つのEC2インスタンスを持�
 
 ---
 
-**次のステップ**: アプリケーションでGatewayをMCPサーバーとして使用するか、AgentCore Identityと統合してセキュリティを強化しましょう。
+**次のステップ**: アプリケーションでGatewayをMCPサーバーとして使用するか、セキュリティ強化のためにAgentCore Identityと統合しましょう。

@@ -49,8 +49,7 @@ sequenceDiagram
 ```
 06_memory/
 ├── README.md                      # This documentation
-├── test_memory.py                 # Main implementation and test suite
-└── .gitignore                     # Git ignore patterns
+└── test_memory.py                 # Main implementation and test suite
 ```
 
 ### Step 1: Run with Existing Memory (Fast)

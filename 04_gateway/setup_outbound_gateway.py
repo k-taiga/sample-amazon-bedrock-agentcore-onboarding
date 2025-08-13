@@ -1,13 +1,5 @@
 """
 Create AgentCore Gateway with Lambda target using AgentCore SDK
-
-This script automatically retrieves the Lambda ARN from configuration or CloudFormation,
-handles OIDC DNS propagation delays, and provides robust resource cleanup.
-
-Usage:
-  uv run python create_gateway.py                    # Auto-detect Lambda ARN
-  uv run python create_gateway.py --lambda-arn ARN   # Specify Lambda ARN explicitly
-  uv run python create_gateway.py --force            # Force recreation of resources
 """
 
 import json
@@ -34,8 +26,8 @@ def setup_gateway(provider_name: str = PROVIDER_NAME, force: bool = False) -> di
     Setup Gateway with GitHub OAuth2 credential provider.
     
     This function:
-    1. Create Cognito user pool and app client
-    2. Creates OAuth2 credential provider using Cognito discovery URL
+    1. Creates Gateway with Inbound Authorizer from 03_identity
+    2. Attach AWS Lambda to Gateway as Outbound target
     3. Saves configuration to outbound_gateway.json
 
     Args:

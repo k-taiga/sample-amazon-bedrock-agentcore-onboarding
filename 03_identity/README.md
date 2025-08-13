@@ -38,8 +38,7 @@ sequenceDiagram
 03_identity/
 ├── README.md                      # This documentation
 ├── setup_inbound_authorizer.py    # OAuth2 provider and secure runtime setup
-├── test_identity_agent.py         # Test agent with identity authentication
-└── runtime_authorizer.json        # Configuration file (auto-generated)
+└── test_identity_agent.py         # Test agent with identity authentication
 ```
 
 ### Step 1: Create OAuth2 Credential Provider and Secure Runtime

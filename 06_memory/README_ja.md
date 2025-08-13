@@ -49,8 +49,7 @@ sequenceDiagram
 ```
 06_memory/
 ├── README.md                      # このドキュメント
-├── test_memory.py                 # メイン実装とテストスイート
-└── .gitignore                     # Git無視パターン
+└── test_memory.py                 # メイン実装とテストスイート
 ```
 
 ### ステップ1: 既存のメモリで実行（高速）
