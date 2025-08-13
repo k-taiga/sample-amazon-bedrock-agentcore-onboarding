@@ -66,7 +66,7 @@ def setup_oauth2_credential_provider(provider_name: str = PROVIDER_NAME, force: 
     elif config:
         if has_provider and force:
             logger.info("Delete existing OAuth2 credential provider...")
-            identity_client.delete_oauth2_credential_provider(provider_name)
+            identity_client.delete_oauth2_credential_provider(name=provider_name)
             save_config(delete_key="provider")
             has_provider = False
         if has_cognito and force:
@@ -162,6 +162,12 @@ def cleanup_cognito_resources(cognito_config):
                 UserPoolId=user_pool_id,
                 ClientId=cognito_config['client_id']
             )
+
+            user_pool_details = cognito_client.describe_user_pool(UserPoolId=user_pool_id)
+            domain = user_pool_details.get("UserPool", {}).get("Domain")
+            
+            if domain:
+                cognito_client.delete_user_pool_domain(Domain=domain, UserPoolId=user_pool_id)
 
             cognito_client.update_user_pool(
                 UserPoolId=user_pool_id,
@@ -269,12 +275,14 @@ def main():
 
         )
 
+        runtime_id = response['agentRuntimeId']
         runtime_arn = response['agentRuntimeArn']
         # https://docs.aws.amazon.com/ja_jp/bedrock-agentcore/latest/devguide/runtime-mcp.html
         escaped_arn = urllib.parse.quote(runtime_arn, safe='')
         url = f"https://bedrock-agentcore.{region}.amazonaws.com/runtimes/{escaped_arn}/invocations?qualifier=DEFAULT"
         save_config({
             "runtime": {
+                "id": runtime_id,
                 "name": secure_agent_name,
                 "url": url
             }
