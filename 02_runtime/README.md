@@ -206,4 +206,4 @@ configure_command = preparer.prepare()
 
 ---
 
-**Next Steps**: Deploy your prepared agent using the generated `agentcore` commands and integrate runtime capabilities into your applications.
+**Next Steps**: Deploy your prepared agent using the generated `agentcore` commands and integrate identity authentication with [03_identity](../03_identity/README.md) for secure operations.

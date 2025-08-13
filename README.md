@@ -41,17 +41,18 @@ sample-amazon-bedrock-agentcore-onboarding/
 │   ├── agent_package/            # Packaged agent for deployment
 │   └── deployment_configs/       # Runtime configuration templates
 │
-├── 03_gateway/                   # API gateway with authentication
-│   ├── README.md                 # 📖 Gateway integration hands-on guide
-│   ├── setup_gateway.py          # Gateway deployment automation
-│   ├── lambda_function/          # Lambda integration code
-│   └── test_gateway.py           # MCP client testing examples
-│
-├── 04_identity/                  # OAuth 2.0 authentication
+├── 03_identity/                  # OAuth 2.0 authentication
 │   ├── README.md                 # 📖 Identity integration hands-on guide
-│   ├── setup_credential_provider.py  # OAuth2 provider setup
-│   ├── agent_with_identity.py    # Identity-protected agent
-│   └── test_identity_agent.py    # Authentication testing suite
+│   ├── setup_inbound_authorizer.py  # OAuth2 provider setup
+│   ├── test_identity_agent.py    # Identity-protected agent
+│   └── runtime_authorizer.json   # Generated configuration
+│
+├── 04_gateway/                   # API gateway with authentication
+│   ├── README.md                 # 📖 Gateway integration hands-on guide
+│   ├── setup_outbound_gateway.py # Gateway deployment automation
+│   ├── src/app.py                # Lambda function implementation
+│   ├── deploy.sh                 # Lambda deployment script
+│   └── test_gateway.py           # MCP client testing examples
 │
 ├── 05_observability/             # Monitoring and debugging
 │   └── README.md                 # 📖 Observability setup hands-on guide
@@ -80,15 +81,15 @@ sample-amazon-bedrock-agentcore-onboarding/
    - Understand scalable agent deployment patterns
    - **Time**: ~45 minutes | **Difficulty**: Intermediate
 
-3. **[Gateway](03_gateway/README.md)** - Expose your agent through secure APIs
-   - Create MCP-compatible API endpoints with Lambda integration
-   - Implement Cognito OAuth authentication
-   - **Time**: ~60 minutes | **Difficulty**: Intermediate
-
-4. **[Identity](04_identity/README.md)** - Add transparent authentication to agents
-   - Integrate OAuth 2.0 with the `@requires_access_token` decorator
-   - Secure agent operations with automatic token management
+3. **[Identity](03_identity/README.md)** - Add OAuth 2.0 authentication for secure operations
+   - Set up Cognito OAuth provider and secure runtime
+   - Implement transparent authentication with `@requires_access_token`
    - **Time**: ~30 minutes | **Difficulty**: Intermediate
+
+4. **[Gateway](04_gateway/README.md)** - Expose agents through MCP-compatible APIs
+   - Create outbound gateway with Lambda integration
+   - Combine local tools with remote gateway functionality
+   - **Time**: ~60 minutes | **Difficulty**: Intermediate
 
 5. **[Observability](05_observability/README.md)** - Monitor and debug production agents
    - Enable CloudWatch integration for comprehensive monitoring
@@ -106,10 +107,10 @@ sample-amazon-bedrock-agentcore-onboarding/
 → Start with [01_code_interpreter](01_code_interpreter/README.md)
 
 **Production Deployment**
-→ Follow [02_runtime](02_runtime/README.md) → [03_gateway](03_gateway/README.md) → [05_observability](05_observability/README.md)
+→ Follow [02_runtime](02_runtime/README.md) → [03_identity](03_identity/README.md) → [04_gateway](04_gateway/README.md) → [05_observability](05_observability/README.md)
 
 **Enterprise Security**
-→ Focus on [04_identity](04_identity/README.md) → [03_gateway](03_gateway/README.md)
+→ Focus on [03_identity](03_identity/README.md) → [04_gateway](04_gateway/README.md)
 
 **Advanced AI Capabilities**
 → Explore [06_memory](06_memory/README.md) → [01_code_interpreter](01_code_interpreter/README.md)

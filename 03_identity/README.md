@@ -151,4 +151,4 @@ print(result)
 
 ---
 
-**Next Steps**: Integrate identity-protected agents into your applications using the patterns demonstrated here.
+**Next Steps**: Integrate identity-protected agents into your applications using the patterns demonstrated here, or continue with [04_gateway](../04_gateway/README.md) to expose agents through MCP-compatible APIs.
