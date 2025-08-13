@@ -41,17 +41,17 @@ sample-amazon-bedrock-agentcore-onboarding/
 │   ├── agent_package/            # デプロイ用パッケージ化エージェント
 │   └── deployment_configs/       # Runtime設定テンプレート
 │
-├── 03_gateway/                   # 認証付きAPIゲートウェイ
-│   ├── README.md                 # 📖 Gateway統合ハンズオンガイド
-│   ├── setup_gateway.py          # Gatewayデプロイ自動化
-│   ├── lambda_function/          # Lambda統合コード
-│   └── test_gateway.py           # MCPクライアントテストサンプル
-│
-├── 04_identity/                  # OAuth 2.0認証
+├── 03_identity/                  # OAuth 2.0認証
 │   ├── README.md                 # 📖 Identity統合ハンズオンガイド
-│   ├── setup_credential_provider.py  # OAuth2プロバイダーセットアップ
-│   ├── agent_with_identity.py    # Identity保護されたエージェント
-│   └── test_identity_agent.py    # 認証テストスイート
+│   ├── setup_inbound_authorizer.py  # OAuth2プロバイダーセットアップ
+│   └── test_identity_agent.py    # Identity保護されたエージェント
+│
+├── 04_gateway/                   # 認証付きAPIゲートウェイ
+│   ├── README.md                 # 📖 Gateway統合ハンズオンガイド
+│   ├── setup_outbound_gateway.py # Gatewayデプロイ自動化
+│   ├── src/app.py                # Lambda関数実装
+│   ├── deploy.sh                 # Lambdaデプロイスクリプト
+│   └── test_gateway.py           # Gatewayテストエージェント
 │
 ├── 05_observability/             # モニタリングとデバッグ
 │   └── README.md                 # 📖 Observabilityセットアップハンズオンガイド
@@ -80,15 +80,15 @@ sample-amazon-bedrock-agentcore-onboarding/
    - スケーラブルなエージェントデプロイパターンを理解
    - **所要時間**: ~45分 | **難易度**: 中級
 
-3. **[Gateway](03_gateway/README_ja.md)** - セキュアなAPIを通じてエージェントを公開
-   - Lambda統合でMCP互換APIエンドポイントを作成
-   - Cognito OAuth認証を実装
-   - **所要時間**: ~60分 | **難易度**: 中級
+3. **[Identity](03_identity/README_ja.md)** - セキュアな操作のためのOAuth 2.0認証を追加
+   - Cognito OAuthプロバイダーとセキュアランタイムをセットアップ
+   - `@requires_access_token`で透過的な認証を実装
+   - **所要時間**: ~15分 | **難易度**: 中級
 
-4. **[Identity](04_identity/README_ja.md)** - エージェントに透過的な認証を追加
-   - `@requires_access_token`デコレーターでOAuth 2.0を統合
-   - 自動トークン管理でエージェント操作を保護
-   - **所要時間**: ~30分 | **難易度**: 中級
+4. **[Gateway](04_gateway/README_ja.md)** - MCP互換APIを通じてエージェントを公開
+   - Lambda統合でアウトバウンドゲートウェイを作成
+   - ローカルツールとリモートゲートウェイ機能を組み合わせ
+   - **所要時間**: ~15分 | **難易度**: 中級
 
 5. **[Observability](05_observability/README_ja.md)** - 本番エージェントのモニタリングとデバッグ
    - 包括的なモニタリングのためのCloudWatch統合を有効化
@@ -106,10 +106,10 @@ sample-amazon-bedrock-agentcore-onboarding/
 → [01_code_interpreter](01_code_interpreter/README_ja.md)から開始
 
 **本番環境へのデプロイ**
-→ [02_runtime](02_runtime/README_ja.md) → [03_gateway](03_gateway/README_ja.md) → [05_observability](05_observability/README_ja.md)の順序で
+→ [02_runtime](02_runtime/README_ja.md) → [03_identity](03_identity/README_ja.md) → [04_gateway](04_gateway/README_ja.md) → [05_observability](05_observability/README_ja.md)の順序で
 
 **エンタープライズセキュリティ**
-→ [04_identity](04_identity/README_ja.md) → [03_gateway](03_gateway/README_ja.md)に焦点を当てる
+→ [03_identity](03_identity/README_ja.md) → [04_gateway](04_gateway/README_ja.md)に焦点を当てる
 
 **高度なAI機能**
 → [06_memory](06_memory/README_ja.md) → [01_code_interpreter](01_code_interpreter/README_ja.md)を探求
@@ -156,6 +156,60 @@ aws sts get-caller-identity
 - 明確なエラーメッセージとトラブルシューティングガイダンス
 - 部分的な障害復旧のための増分状態管理
 
+## リソースのクリーンアップ
+
+### 🧹 **重要：AWSリソースのクリーンアップ**
+
+ハンズオン演習完了後は、継続的な課金を避けるためにリソースをクリーンアップしてください。**依存関係のため、逆順（06→01）でクリーンアップしてください**：
+
+```bash
+# 1. 最初にMemoryリソースをクリーンアップ
+cd 06_memory
+uv run python clean_resources.py
+
+# 2. Gatewayリソースをクリーンアップ（SAM CLIを使用）
+cd 04_gateway
+sam delete  # Lambda関数と関連リソースを削除
+uv run python clean_resources.py  # 必要に応じて追加のクリーンアップ
+
+# 3. Identityリソースをクリーンアップ
+cd 03_identity
+uv run python clean_resources.py
+
+# 4. Runtimeリソースをクリーンアップ
+cd 02_runtime
+uv run python clean_resources.py
+
+# 5. 最後にCode Interpreterリソースをクリーンアップ
+cd 01_code_interpreter
+uv run python clean_resources.py
+```
+
+### 🔍 **クリーンアップされるもの**
+
+- **Memory (06)**: メモリストア、会話履歴、永続データ
+- **Gateway (04)**: Lambda関数（`sam delete`経由）、API Gatewayリソース、デプロイアーティファクト
+- **Identity (03)**: Cognitoユーザープール、OAuthクライアント、認証設定
+- **Runtime (02)**: デプロイされたエージェント、ランタイム設定、関連S3オブジェクト
+- **Code Interpreter (01)**: アクティブなセッションと一時リソース
+- **Observability (05)**: クリーンアップスクリプト不要 - CloudWatchログは自動的に期限切れ
+
+### ⚠️ **依存関係の順序が重要**
+
+**逆順（06→01）**でクリーンアップする理由：
+- MemoryエージェントがGatewayエンドポイントに依存している可能性
+- Gateway関数がIdentity認証を使用している可能性
+- Identity設定がRuntimeエージェントによって参照されている可能性
+- RuntimeエージェントがCode Interpreterセッションを使用している可能性
+
+### 💡 **ベストプラクティス**
+
+- 依存関係エラーを避けるため、必ず指定された順序でクリーンアップしてください
+- 各ハンズオン演習完了後にクリーンアップスクリプトを実行してください
+- AWSコンソールまたはCLIコマンドを使用してリソースの削除を確認してください
+- 予期しない課金がないかAWS請求ダッシュボードを監視してください
+- 独自のプロジェクトを構築する際の参考として、クリーンアップスクリプトを保持してください
+
 ## サポート
 
 ### ドキュメント
@@ -167,6 +221,7 @@ aws sts get-caller-identity
 - **AWS権限**: 上記の必要な権限が認証情報にあることを確認してください
 - **サービスの可用性**: AgentCoreはプレビュー版です - リージョンの可用性を確認してください
 - **依存関係**: 一貫した依存関係バージョンを確保するため`uv sync`を使用してください
+- **リソースのクリーンアップ**: 予期しない課金を避けるため、必ずクリーンアップスクリプトを逆順で実行してください
 
 ### サポートリソース
 - [Amazon Bedrock AgentCore開発者ガイド](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/)

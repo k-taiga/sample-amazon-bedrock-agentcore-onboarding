@@ -38,28 +38,27 @@ sample-amazon-bedrock-agentcore-onboarding/
 ├── 02_runtime/                   # Agent deployment and management
 │   ├── README.md                 # 📖 Runtime deployment hands-on guide
 │   ├── prepare_agent.py          # Agent preparation automation tool
-│   ├── agent_package/            # Packaged agent for deployment
-│   └── deployment_configs/       # Runtime configuration templates
+│   └── deployment/               # Packaged agent for deployment
 │
-├── 03_gateway/                   # API gateway with authentication
-│   ├── README.md                 # 📖 Gateway integration hands-on guide
-│   ├── setup_gateway.py          # Gateway deployment automation
-│   ├── lambda_function/          # Lambda integration code
-│   └── test_gateway.py           # MCP client testing examples
-│
-├── 04_identity/                  # OAuth 2.0 authentication
+├── 03_identity/                  # OAuth 2.0 authentication
 │   ├── README.md                 # 📖 Identity integration hands-on guide
-│   ├── setup_credential_provider.py  # OAuth2 provider setup
-│   ├── agent_with_identity.py    # Identity-protected agent
-│   └── test_identity_agent.py    # Authentication testing suite
+│   ├── setup_inbound_authorizer.py  # OAuth2 provider setup
+│   └── test_identity_agent.py    # Identity-protected agent
+│
+├── 04_gateway/                   # API gateway with authentication
+│   ├── README.md                 # 📖 Gateway integration hands-on guide
+│   ├── setup_outbound_gateway.py # Gateway deployment automation
+│   ├── src/app.py                # Lambda function implementation
+│   ├── deploy.sh                 # Lambda deployment script
+│   └── test_gateway.py           # Gateway test agent
 │
 ├── 05_observability/             # Monitoring and debugging
-│   └── README.md                 # 📖 Observability setup hands-on guide
+│   ├── README.md                 # 📖 Observability setup hands-on guide
+│   └── test_observability.py     # Invoke runtime several times for observability
 │
 ├── 06_memory/                    # Context-aware interactions
 │   ├── README.md                 # 📖 Memory integration hands-on guide
-│   ├── test_memory.py            # Memory-enhanced agent implementation
-│   └── _implementation.md        # Technical implementation details
+│   └── test_memory.py            # Memory-enhanced agent implementation
 │
 ├── pyproject.toml                # Project dependencies and configuration
 ├── uv.lock                       # Dependency lock file
@@ -73,32 +72,32 @@ sample-amazon-bedrock-agentcore-onboarding/
 1. **[Code Interpreter](01_code_interpreter/README.md)** - Start here for foundational agent development
    - Build an AWS cost estimator with secure Python execution
    - Learn AgentCore basics with immediate, practical results
-   - **Time**: ~30 minutes | **Difficulty**: Beginner
+   - **Time**: ~10 minutes | **Difficulty**: Beginner
 
 2. **[Runtime](02_runtime/README.md)** - Deploy your agent to AWS cloud infrastructure
    - Package and deploy the cost estimator to AgentCore Runtime
    - Understand scalable agent deployment patterns
-   - **Time**: ~45 minutes | **Difficulty**: Intermediate
+   - **Time**: ~15 minutes | **Difficulty**: Intermediate
 
-3. **[Gateway](03_gateway/README.md)** - Expose your agent through secure APIs
-   - Create MCP-compatible API endpoints with Lambda integration
-   - Implement Cognito OAuth authentication
-   - **Time**: ~60 minutes | **Difficulty**: Intermediate
+3. **[Identity](03_identity/README.md)** - Add OAuth 2.0 authentication for secure operations
+   - Set up Cognito OAuth provider and secure runtime
+   - Implement transparent authentication with `@requires_access_token`
+   - **Time**: ~15 minutes | **Difficulty**: Intermediate
 
-4. **[Identity](04_identity/README.md)** - Add transparent authentication to agents
-   - Integrate OAuth 2.0 with the `@requires_access_token` decorator
-   - Secure agent operations with automatic token management
-   - **Time**: ~30 minutes | **Difficulty**: Intermediate
+4. **[Gateway](04_gateway/README.md)** - Expose agents through MCP-compatible APIs
+   - Create outbound gateway with Lambda integration
+   - Combine local tools with remote gateway functionality
+   - **Time**: ~15 minutes | **Difficulty**: Intermediate
 
 5. **[Observability](05_observability/README.md)** - Monitor and debug production agents
    - Enable CloudWatch integration for comprehensive monitoring
-   - Set up tracing, metrics, and debugging capabilities
-   - **Time**: ~20 minutes | **Difficulty**: Beginner
+   - Check tracing, metrics, and debugging capabilities
+   - **Time**: ~15 minutes | **Difficulty**: Beginner
 
 6. **[Memory](06_memory/README.md)** - Build context-aware, learning agents
    - Implement short-term and long-term memory capabilities
    - Create personalized, adaptive agent experiences
-   - **Time**: ~45 minutes | **Difficulty**: Advanced
+   - **Time**: ~15 minutes | **Difficulty**: Advanced
 
 ### 🎯 Focused Learning (By Use Case)
 
@@ -106,13 +105,13 @@ sample-amazon-bedrock-agentcore-onboarding/
 → Start with [01_code_interpreter](01_code_interpreter/README.md)
 
 **Production Deployment**
-→ Follow [02_runtime](02_runtime/README.md) → [03_gateway](03_gateway/README.md) → [05_observability](05_observability/README.md)
+→ Follow [02_runtime](02_runtime/README.md) → [03_identity](03_identity/README.md) → [04_gateway](04_gateway/README.md) → [05_observability](05_observability/README.md)
 
 **Enterprise Security**
-→ Focus on [04_identity](04_identity/README.md) → [03_gateway](03_gateway/README.md)
+→ Focus on [03_identity](03_identity/README.md) → [04_gateway](04_gateway/README.md)
 
 **Advanced AI Capabilities**
-→ Explore [06_memory](06_memory/README.md) → [01_code_interpreter](01_code_interpreter/README.md)
+[01_code_interpreter](01_code_interpreter/README.md) → Explore [06_memory](06_memory/README.md)
 
 ## Prerequisites
 
@@ -120,6 +119,8 @@ sample-amazon-bedrock-agentcore-onboarding/
 - **Python 3.11+** with `uv` package manager
 - **AWS CLI** configured with appropriate permissions
 - **AWS Account** with access to Bedrock AgentCore (Preview)
+- **Amazon Bedrock** with model access to necessary models
+
 
 ### Quick Setup
 ```bash
@@ -137,8 +138,8 @@ aws sts get-caller-identity
 ## Key Features
 
 ### 🔧 **Real Implementation Focus**
-- No dummy data or placeholder responses
-- All examples connect to live AWS services
+- No dummy data or function
+- All examples connect to actual use cases
 - Authentic complexity and error handling patterns
 
 ### 📚 **Progressive Learning Design**
@@ -146,33 +147,49 @@ aws sts get-caller-identity
 - Clear prerequisites and dependencies
 - Step-by-step execution instructions
 
-### 🛠️ **Production-Ready Patterns**
-- Comprehensive error handling and logging
-- Resource cleanup and lifecycle management
-- Security best practices and authentication
-
 ### 🔍 **Debugging-Friendly**
 - Extensive logging for monitoring behavior
 - Clear error messages and troubleshooting guidance
 - Incremental state management for partial failure recovery
 
-## Getting Help
+## Resource Cleanup
 
-### Documentation
-- Each directory contains detailed `README.md` with hands-on instructions
-- Implementation details in `_implementation.md` files where applicable
-- Inline code comments explain complex logic
+### 🧹 **Important: Clean Up AWS Resources**
+
+To avoid ongoing charges, clean up resources after completing the hands-on exercises. **Clean up in reverse order (06→01) due to dependencies**:
+
+```bash
+# 1. Clean up Memory resources first
+cd 06_memory
+uv run python clean_resources.py
+
+# 2. Clean up Gateway resources (uses SAM CLI)
+cd 04_gateway
+sam delete  # Deletes Lambda function and associated resources
+uv run python clean_resources.py  # Additional cleanup if needed
+
+# 3. Clean up Identity resources
+cd 03_identity
+uv run python clean_resources.py
+
+# 4. Clean up Runtime resources
+cd 02_runtime
+uv run python clean_resources.py
+```
+
+## Getting Help
 
 ### Common Issues
 - **AWS Permissions**: Ensure your credentials have the required permissions listed above
 - **Service Availability**: AgentCore is in Preview - check region availability
 - **Dependencies**: Use `uv sync` to ensure consistent dependency versions
+- **Resource Cleanup**: Always run cleanup scripts in reverse order to avoid unexpected charges
 
 ### Support Resources
 
 - [Amazon Bedrock AgentCore Developer Guide](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/)
 - [AWS Support](https://aws.amazon.com/support/) for account-specific issues
-- [GitHub Issues](../../issues) for project-specific questions
+- [GitHub Issues](https://github.com/aws-samples/sample-amazon-bedrock-agentcore-onboarding/issues) for project-specific questions
 
 ## Contributing
 
@@ -184,7 +201,6 @@ We welcome contributions that align with our **Implementation Principle**:
 4. **Meaningful Structure** - Use descriptive names and logical organization
 
 See our [Contribution Guideline](CONTRIBUTING.md) for detailed guidelines.
-
 
 ## Security
 

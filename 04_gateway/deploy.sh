@@ -12,30 +12,27 @@ else
     echo "Warning: No virtual environment found. Using system Python."
 fi
 
-# Read the agent ARN from 02_runtime configuration
-YAML_FILE="../02_runtime/.bedrock_agentcore.yaml"
-
-if [ ! -f "$YAML_FILE" ]; then
-    echo "Error: AgentCore configuration file not found at $YAML_FILE"
-    echo "Please ensure you have deployed the AgentCore Runtime in 02_runtime first."
+STACK_NAME="AWS-Cost-Estimator-Tool-Markdown-To-Email"
+REGION=$(aws configure get region 2>/dev/null || true)
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <ses-sender-email>"
     exit 1
 fi
+SES_SENDER_EMAIL="$1"
 
-# Extract agent ARN from YAML file using grep and awk
-RUNTIME_ARN=$(grep "agent_arn:" $YAML_FILE | awk '{print $2}')
 
-if [ -z "$RUNTIME_ARN" ]; then
-    echo "Error: Could not find agent_arn in $YAML_FILE"
-    exit 1
-fi
-
-STACK_NAME="AWS-Cost-Estimator-Agent"
-REGION=${AWS_DEFAULT_REGION:-us-east-1}
-
-echo "Deploying AgentCore Gateway Lambda..."
-echo "Runtime ARN: $RUNTIME_ARN"
+echo "Deploying Markdown-to-Email Lambda for Gateway..."
+echo "Sender Email: $SES_SENDER_EMAIL"
 echo "Stack Name: $STACK_NAME"
 echo "Region: $REGION"
+
+# Verify sender email in SES
+echo "Verifying sender email in Amazon SES..."
+aws ses verify-email-identity --email-address "$SES_SENDER_EMAIL" --region "$REGION" || {
+    echo "Warning: Failed to verify email address. You may need to verify it manually."
+    echo "Check your email for a verification message from Amazon SES."
+}
+
 
 # Build the SAM application
 echo "Building SAM application..."
@@ -46,7 +43,7 @@ echo "Deploying SAM application..."
 sam deploy \
     --stack-name $STACK_NAME \
     --region $REGION \
-    --parameter-overrides "AgentCoreRuntimeArn=$RUNTIME_ARN" \
+    --parameter-overrides "SenderEmail=$SES_SENDER_EMAIL" \
     --capabilities CAPABILITY_IAM \
     --no-confirm-changeset \
     --no-fail-on-empty-changeset \
@@ -65,27 +62,36 @@ if [ -z "$LAMBDA_ARN" ]; then
 fi
 
 # Save Lambda ARN to gateway configuration for create_gateway.py
-CONFIG_FILE="gateway_config.json"
+CONFIG_FILE="outbound_gateway.json"
 echo "Saving Lambda ARN to $CONFIG_FILE..."
 
 # Create or update the configuration file with Lambda ARN
 cat > $CONFIG_FILE << EOF
 {
   "lambda_arn": "$LAMBDA_ARN",
+  "sender_email": "$SES_SENDER_EMAIL",
   "deployment_timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "stack_name": "$STACK_NAME",
-  "region": "$REGION"
+  "region": "$REGION",
+  "tool_name": "markdown_to_email"
 }
 EOF
 
 echo ""
 echo "Deployment complete!"
 echo "Lambda Function ARN: $LAMBDA_ARN"
+echo "Sender Email: $SES_SENDER_EMAIL"
 echo "Configuration saved to: $CONFIG_FILE"
 echo ""
 echo "Next steps:"
-echo "1. Run 'uv run python create_gateway.py' to set up the Gateway (Lambda ARN will be read from config)"
-echo "2. The Gateway will automatically use the deployed Lambda function as its target"
+echo "1. Ensure your sender email ($SES_SENDER_EMAIL) is verified in Amazon SES"
+echo "2. Run 'uv run python setup_outbound_gateway.py' to set up the Gateway (Lambda ARN will be read from config)"
+echo "3. The Gateway will provide a 'markdown_to_email' tool that converts markdown to HTML and sends via email"
+echo ""
+echo "Tool usage:"
+echo "- markdown_text: The markdown content to convert"
+echo "- email_address: Recipient email address"
+echo "- subject: Email subject (optional)"
 
 # Deactivate virtual environment if it was activated
 if [ ! -z "$VIRTUAL_ENV" ]; then
