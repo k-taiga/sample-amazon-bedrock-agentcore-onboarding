@@ -46,7 +46,7 @@ with CONFIG_FILE.open('r') as f:
 async def cost_estimator_tool(architecture_description, access_token: str) -> str:
     session_id = f"runtime-with-identity-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')}"
     if access_token:
-        logger.info(f"✅ Successfully load the access token from AgentCore Identity!")
+        logger.info("✅ Successfully load the access token from AgentCore Identity!")
         for element in access_token.split("."):
             logger.info(f"\t{json.loads(base64.b64decode(element).decode())}")
 
@@ -88,9 +88,9 @@ async def main():
         tools=[cost_estimator_tool]
     )
 
-    logger.info(f"Invoke agent that calls Runtime with Identity...")
+    logger.info("Invoke agent that calls Runtime with Identity...")
     await agent.invoke_async(args.architecture)
-    logger.info(f"✅ Successfully called agent!")
+    logger.info("✅ Successfully called agent!")
 
 
 if __name__ == "__main__":

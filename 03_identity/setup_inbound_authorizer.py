@@ -18,6 +18,7 @@ import logging
 import argparse
 import time
 from pathlib import Path
+from typing import Optional
 import urllib.parse
 import requests
 from rich.console import Console
@@ -27,10 +28,7 @@ import yaml
 
 
 # Configure logging for clear debugging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 
 PROVIDER_NAME = "inbound-identity-for-cost-estimator-agent"
@@ -41,15 +39,16 @@ def setup_oauth2_credential_provider(provider_name: str = PROVIDER_NAME, force: 
     Setup OAuth2 credential provider for AgentCore Identity.
     
     This function:
-    1. Create 
+    1. Create Cognito user pool and app client
     2. Creates OAuth2 credential provider using Cognito discovery URL
-    3. Configures client credentials for M2M authentication
+    3. Saves configuration to inbound_authorizer.json
     
     Args:
         provider_name: Name for the credential provider
-        
+        force: Whether to force recreation of resources
+
     Returns:
-        bool: True if successful, False otherwise
+        dict: Configuration
     """
 
     config = load_config()
@@ -58,19 +57,26 @@ def setup_oauth2_credential_provider(provider_name: str = PROVIDER_NAME, force: 
     has_cognito = config and 'cognito' in config
     has_provider = config and 'provider' in config
 
+    identity_client = boto3.client('bedrock-agentcore-control', region_name=region)
+
     # If everything is complete and not forcing, show summary and exit
     if config and has_cognito and has_provider and not force:
         logger.info("All components already configured (use --force to recreate)")
         return config
-    
-    cognito_config = {}
-    if has_cognito and not force:
-        cognito_config = config['cognito']
-    else:
+    elif config:
+        if has_provider and force:
+            logger.info("Delete existing OAuth2 credential provider...")
+            identity_client.delete_oauth2_credential_provider(provider_name)
+            save_config(delete_key="provider")
+            has_provider = False
         if has_cognito and force:
             logger.info("Delete existing Cognito OAuth authorizer...")
             cleanup_cognito_resources(config['cognito'])
-
+            save_config(delete_key="cognito")
+            has_cognito = False
+    
+    cognito_config = {}
+    if not has_cognito:
         logger.info("Creating Cognito OAuth authorizer...")
         gateway_client = GatewayClient(region_name=region)
         # Use simple interface for creating OAuth authorizer with Cognito from Gateway Client
@@ -90,15 +96,7 @@ def setup_oauth2_credential_provider(provider_name: str = PROVIDER_NAME, force: 
         logger.info("✅ Cognito configuration saved")
 
     provider_config = {}
-    if has_provider and not force:
-        provider_config = config['provider']
-    else:
-        identity_client = boto3.client('bedrock-agentcore-control', region_name=region)
-
-        if has_provider and force:
-            logger.info("Delete existing OAuth2 credential provider...")
-            identity_client.delete_oauth2_credential_provider(provider_name)
-
+    if not has_provider:
         logger.info("Creating Identity Provider ...")
         # Create new credential provider configuration
         # https://docs.aws.amazon.com/bedrock-agentcore-control/latest/APIReference/API_CustomOauth2ProviderConfigInput.html
@@ -122,12 +120,10 @@ def setup_oauth2_credential_provider(provider_name: str = PROVIDER_NAME, force: 
         )
 
         provider_config = {
-            "provider" : {
-                "name": provider_name,
-                "arn" : response['credentialProviderArn']
-            }
+            "name": provider_name,
+            "arn" : response['credentialProviderArn']
         }
-        save_config(provider_config)
+        save_config({"provider": provider_config})
         logger.info("✅ Provider configuration saved")
         
         return load_config()
@@ -142,14 +138,14 @@ def load_config() -> dict:
         return {}
 
 
-def save_config(updates):
+def save_config(updates: Optional[dict]=None, delete_key: str=""):
     """Update configuration file with new data"""
-    config = {}
-    if CONFIG_FILE.exists():
-        with CONFIG_FILE.open('r') as f:
-            config = json.load(f)
+    config = load_config()
     
-    config.update(updates)
+    if updates is not None:
+        config.update(updates)
+    elif delete_key:
+        del config[delete_key]
     
     with CONFIG_FILE.open('w') as f:
         json.dump(config, f, indent=2)
@@ -231,7 +227,7 @@ def main():
 
     runtime_path = Path("../02_runtime/.bedrock_agentcore.yaml")
     if not runtime_path.exists():
-        logger.warning(f"Please deploy Runtime before setting Identity.")
+        logger.warning("Please deploy Runtime before setting Identity.")
         return None
     
     try:
