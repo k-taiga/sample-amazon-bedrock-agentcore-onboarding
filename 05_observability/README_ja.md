@@ -8,32 +8,23 @@
 
 ```mermaid
 sequenceDiagram
-    participant Agent as Strandsエージェント
-    participant ADOT as AWS Distro for OpenTelemetry
+    participant Test as ユーザー <br/>test_observability.py)
+    participant Config as Lab2 <br/>.bedrock_agentcore.yaml
     participant AgentCore as AgentCore Runtime
     participant CloudWatch as Amazon CloudWatch
-    participant Console as CloudWatchコンソール
+    participant Console as CloudWatch Console
 
-    Note over Agent,Console: セッション初期化
-    Agent->>AgentCore: エージェントセッションを開始
-    AgentCore->>CloudWatch: セッションメトリクスを作成
+    Note over Test,Console: Setup
+    Test->>Test: セッションID生成 (user_id + timestamp)
     
-    Note over Agent,Console: トレーシング付きリクエスト処理
-    Agent->>ADOT: opentelemetry-instrumentで実行
-    ADOT->>AgentCore: スパンとトレースをキャプチャ
-    AgentCore->>CloudWatch: テレメトリデータを送信
-    
-    Note over Agent,Console: メモリ/ゲートウェイ操作
-    Agent->>AgentCore: メモリ/ゲートウェイ操作
-    AgentCore->>CloudWatch: サービス提供メトリクス
-    AgentCore->>CloudWatch: スパンとログ（有効な場合）
-    
-    Note over Agent,Console: 可観測性ダッシュボード
-    Console->>CloudWatch: メトリクスとトレースをクエリ
-    CloudWatch-->>Console: GenAI Observabilityを表示
-    Console-->>Console: トレース可視化
-    Console-->>Console: パフォーマンスグラフ
-    Console-->>Console: エラー分析
+    Note over Test,Console: Multiple Invocations
+    loop Multiple prompts in same session
+        Test->>AgentCore: Runtime 呼び出し <br/>invoke_agent_runtime(same sessionId, different payload)
+        AgentCore->>CloudWatch: メトリクスやイベントのトレース
+        AgentCore-->>Test: 実行結果
+    end
+
+    Console->>Console: トレース可視化・モニタリング・パフォーマンス分析
 ```
 
 ## 前提条件

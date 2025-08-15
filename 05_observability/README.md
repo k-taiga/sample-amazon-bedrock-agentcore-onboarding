@@ -8,32 +8,24 @@ This implementation demonstrates **AgentCore Observability** with Amazon CloudWa
 
 ```mermaid
 sequenceDiagram
-    participant Agent as Strands Agent
-    participant ADOT as AWS Distro for OpenTelemetry
+    participant Test as User <br/>(test_observability.py)
+    participant Config as Lab2 <br/>(.bedrock_agentcore.yaml)
     participant AgentCore as AgentCore Runtime
     participant CloudWatch as Amazon CloudWatch
     participant Console as CloudWatch Console
 
-    Note over Agent,Console: Session Initialization
-    Agent->>AgentCore: Start Agent Session
-    AgentCore->>CloudWatch: Create Session Metrics
+    Note over Test,Console: Setup
+    Config ->> Test: Read AgentCore config 
+    Test->>Test: Generate meaningful session ID (user_id + timestamp)
     
-    Note over Agent,Console: Request Processing with Tracing
-    Agent->>ADOT: Execute with opentelemetry-instrument
-    ADOT->>AgentCore: Capture Spans & Traces
-    AgentCore->>CloudWatch: Send Telemetry Data
-    
-    Note over Agent,Console: Memory/Gateway Operations
-    Agent->>AgentCore: Memory/Gateway Operations
-    AgentCore->>CloudWatch: Service-Provided Metrics
-    AgentCore->>CloudWatch: Spans & Logs (if enabled)
-    
-    Note over Agent,Console: Observability Dashboard
-    Console->>CloudWatch: Query Metrics & Traces
-    CloudWatch-->>Console: Display GenAI Observability
-    Console-->>Console: Trace Visualizations
-    Console-->>Console: Performance Graphs
-    Console-->>Console: Error Analysis
+    Note over Test,Console: Multiple Invocations
+    loop Multiple prompts in same session
+        Test->>AgentCore: invoke_agent_runtime(same sessionId, different payload)
+        AgentCore->>CloudWatch: Record metrics & spans
+        AgentCore-->>Test: Response with results
+    end
+
+    Console->>Console: Analyze traced records
 ```
 
 ## Prerequisites

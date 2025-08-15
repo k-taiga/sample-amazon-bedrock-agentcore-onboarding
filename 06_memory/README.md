@@ -10,26 +10,28 @@ This implementation demonstrates **AgentCore Memory** capabilities by enhancing 
 sequenceDiagram
     participant User as User
     participant Agent as AgentWithMemory
-    participant Memory as AgentCore Memory
     participant Estimator as Cost Estimator
+    participant Memory as AgentCore Memory
     participant Bedrock as Amazon Bedrock
 
-    User->>Agent: estimate("t3.micro + RDS")
+    User->>Agent: estimate("small blog & web app")
     Agent->>Estimator: Calculate costs
     Estimator-->>Agent: Cost results
-    Agent->>Memory: Store interaction
+    Agent->>Memory: Store interaction (SHORT TERM MEMORY)
     Memory-->>Agent: Event stored
+    Memory-->>Memory: (Automatic update of LONG TERM MEMORY)
     Agent-->>User: Cost estimate
 
     User->>Agent: compare("my estimates")
-    Agent->>Memory: Retrieve events
+    Agent->>Memory: Retrieve events (from SHORT MEMORY)
     Memory-->>Agent: Historical estimates
+    Memory-->>Memory: (Automatic update of LONG TERM MEMORY)
     Agent->>Bedrock: Generate comparison
     Bedrock-->>Agent: Comparison analysis
     Agent-->>User: Side-by-side comparison
 
     User->>Agent: propose("optimal architecture")
-    Agent->>Memory: Retrieve preferences
+    Agent->>Memory: Retrieve preferences (from LONG TERM MEMORY)
     Memory-->>Agent: User patterns
     Agent->>Bedrock: Generate proposal
     Bedrock-->>Agent: Personalized recommendation

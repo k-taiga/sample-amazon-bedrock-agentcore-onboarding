@@ -1,5 +1,5 @@
 {
-  "name": "workshop-builder",
+  "name": "default-agent",
   "description": "Workshop builder agent configuration",
   "mcpServers": {
     "AWS Core MCP Server": {

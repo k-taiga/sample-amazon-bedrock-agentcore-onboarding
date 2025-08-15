@@ -8,32 +8,34 @@
 
 ```mermaid
 sequenceDiagram
-    participant User as ユーザー
+    participant User as User
     participant Agent as AgentWithMemory
+    participant Estimator as Cost Estimator
     participant Memory as AgentCore Memory
-    participant Estimator as コスト見積もりツール
     participant Bedrock as Amazon Bedrock
 
-    User->>Agent: estimate("t3.micro + RDS")
-    Agent->>Estimator: コストを計算
-    Estimator-->>Agent: コスト結果
-    Agent->>Memory: インタラクションを保存
-    Memory-->>Agent: イベント保存済み
-    Agent-->>User: コスト見積もり
+    User->>Agent: estimate("small blog & web app")
+    Agent->>Estimator: Calculate costs
+    Estimator-->>Agent: Cost results
+    Agent->>Memory: Store interaction (SHORT TERM MEMORY)
+    Memory-->>Agent: Event stored
+    Memory-->>Memory: (Automatic update of LONG TERM MEMORY)
+    Agent-->>User: Cost estimate
 
-    User->>Agent: compare("私の見積もり")
-    Agent->>Memory: イベントを取得
-    Memory-->>Agent: 履歴見積もり
-    Agent->>Bedrock: 比較を生成
-    Bedrock-->>Agent: 比較分析
-    Agent-->>User: 並列比較
+    User->>Agent: compare("my estimates")
+    Agent->>Memory: Retrieve events (from SHORT MEMORY)
+    Memory-->>Agent: Historical estimates
+    Memory-->>Memory: (Automatic update of LONG TERM MEMORY)
+    Agent->>Bedrock: Generate comparison
+    Bedrock-->>Agent: Comparison analysis
+    Agent-->>User: Side-by-side comparison
 
-    User->>Agent: propose("最適なアーキテクチャ")
-    Agent->>Memory: 設定を取得
-    Memory-->>Agent: ユーザーパターン
-    Agent->>Bedrock: 提案を生成
-    Bedrock-->>Agent: パーソナライズされた推奨
-    Agent-->>User: アーキテクチャ提案
+    User->>Agent: propose("optimal architecture")
+    Agent->>Memory: Retrieve preferences (from LONG TERM MEMORY)
+    Memory-->>Agent: User patterns
+    Agent->>Bedrock: Generate proposal
+    Bedrock-->>Agent: Personalized recommendation
+    Agent-->>User: Architecture proposal
 ```
 
 ## 前提条件
