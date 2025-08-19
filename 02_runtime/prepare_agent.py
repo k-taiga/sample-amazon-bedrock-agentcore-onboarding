@@ -60,11 +60,14 @@ class AgentPreparer:
         role_info = self.create_agentcore_role()
 
         # Build agentcore configure command
-        command = f"uv run agentcore configure --entrypoint {deployment_dir}/invoke.py " \
-                    f"--name {self.agent_name} " \
-                    f"--execution-role {role_info['role_arn']} " \
-                    f"--requirements-file {deployment_dir}/requirements.txt " \
-                    f"--region {self.region} " \
+        command = "\n".join([
+            "",
+            f"uv run agentcore configure --entrypoint {deployment_dir}/invoke.py \\",
+            f"--name {self.agent_name} \\",
+            f"--execution-role {role_info['role_arn']} \\",
+            f"--requirements-file {deployment_dir}/requirements.txt \\",
+            f"--region {self.region} "
+        ])
 
         return command
 
