@@ -25,15 +25,18 @@ def clean_resources():
         region_name=region
     )
 
+    print(f"Deleting runtime: {agent_id}")
     runtime_delete_response = agentcore_control_client.delete_agent_runtime(
         agentRuntimeId=agent_id            
     )
 
+    print(f"Deleting ECR: {ecr_id}")
     response = ecr_client.delete_repository(
         repositoryName=ecr_id.split('/')[-1],
         force=True
     )
 
+    print(f"Deleting configuration files")
     os.remove(".bedrock_agentcore.yaml")
     os.remove("Dockerfile")
 
