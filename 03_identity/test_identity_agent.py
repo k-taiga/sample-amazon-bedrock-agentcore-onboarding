@@ -81,7 +81,7 @@ async def main():
 
     agent = Agent(
         system_prompt=(
-            "Your are a professional solution architect. "
+            "You are a professional solution architect. "
             "You will receive architecture descriptions or requirements from customers. "
             "Please provide estimate by using 'cost_estimator_tool'"
         ),
