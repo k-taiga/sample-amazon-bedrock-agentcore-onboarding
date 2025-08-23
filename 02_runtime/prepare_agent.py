@@ -243,6 +243,13 @@ class AgentPreparer:
                         "bedrock-agentcore:ListCodeInterpreterSessions"
                     ],
                     "Resource": "arn:aws:bedrock-agentcore:*:*:*"
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "pricing:*"
+                    ],
+                    "Resource": "*"
                 }
             ]
         }
@@ -283,18 +290,6 @@ class AgentPreparer:
                 
             except ClientError as e:
                 logger.error(f"Failed to attach execution policy: {e}")
-                return {}  # Return empty dict to indicate failure
-
-            # Attach additional policy for pricing mcp
-            try:
-                self.iam_client.attach_role_policy(
-                    RoleName=role_name,
-                    PolicyArn='arn:aws:iam::aws:policy/AWSPriceListServiceFullAccess'
-                )
-                logger.info(f"Pricing policy attached to role: {role_name}")
-
-            except ClientError as e:
-                logger.error(f"Failed to attach pricing policy: {e}")
                 return {}  # Return empty dict to indicate failure
 
         return {
