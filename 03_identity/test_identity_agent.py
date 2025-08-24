@@ -30,6 +30,7 @@ CONFIG_FILE = Path("inbound_authorizer.json")
 OAUTH_PROVIDER = ""
 OAUTH_SCOPE = ""
 RUNTIME_URL = ""
+BASE64_BLOCK_SIZE = 4 # Base64 encoding processes data in 4-character blocks
 with CONFIG_FILE.open('r') as f:
     config = json.load(f)
     OAUTH_PROVIDER = config["provider"]["name"]
@@ -54,7 +55,14 @@ async def _cost_estimator_with_auth(architecture_description: str, access_token:
         token_parts = access_token.split(".")
         for i, part in enumerate(token_parts[:2]):  # Only decode header and payload, not signature
             try:
-                decoded = base64.b64decode(part + '=' * (4 - len(part) % 4))  # Add padding if needed
+                # Add padding if needed (JWT Base64 encoding may omit trailing '=' characters)
+                num_padding_chars = BASE64_BLOCK_SIZE - (len(part) % BASE64_BLOCK_SIZE)
+                if num_padding_chars != BASE64_BLOCK_SIZE:
+                    part_for_decode = part + '=' * num_padding_chars
+                else:
+                    part_for_decode = part
+
+                decoded = base64.b64decode(part_for_decode)
                 logger.info(f"\tToken part {i}: {json.loads(decoded.decode())}")
             except Exception as e:
                 logger.warning(f"\tCould not decode token part {i}: {e}")
