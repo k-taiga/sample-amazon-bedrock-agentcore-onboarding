@@ -243,6 +243,13 @@ class AgentPreparer:
                         "bedrock-agentcore:ListCodeInterpreterSessions"
                     ],
                     "Resource": "arn:aws:bedrock-agentcore:*:*:*"
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "pricing:*"
+                    ],
+                    "Resource": "*"
                 }
             ]
         }
