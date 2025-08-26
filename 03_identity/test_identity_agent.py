@@ -38,6 +38,34 @@ with CONFIG_FILE.open('r') as f:
     RUNTIME_URL = config["runtime"]["url"]
 
 
+def log_jwt_token_details(access_token: str) -> None:
+    """
+    Log JWT token contents for debugging purposes using Base64 decoding.
+    
+    Args:
+        access_token: JWT access token
+    
+    Note:
+        JWT tokens consist of three parts (header, payload, signature).
+        For security reasons, the signature part is not decoded.
+    """
+    # Parse and log JWT token parts for debugging
+    token_parts = access_token.split(".")
+    for i, part in enumerate(token_parts[:2]):  # Only decode header and payload, not signature
+        try:
+            # Add padding if needed (JWT Base64 encoding may omit trailing '=' characters)
+            num_padding_chars = BASE64_BLOCK_SIZE - (len(part) % BASE64_BLOCK_SIZE)
+            if num_padding_chars != BASE64_BLOCK_SIZE:
+                part_for_decode = part + '=' * num_padding_chars
+            else:
+                part_for_decode = part
+
+            decoded = base64.b64decode(part_for_decode)
+            logger.info(f"\tToken part {i}: {json.loads(decoded.decode())}")
+        except Exception as e:
+            logger.error(f"\t❌ Failed to decode token part {i}: {e}")
+
+
 # Internal function with authentication decorator
 @requires_access_token(
     provider_name=OAUTH_PROVIDER,
@@ -52,20 +80,7 @@ async def _cost_estimator_with_auth(architecture_description: str, access_token:
     if access_token:
         logger.info("✅ Successfully load the access token from AgentCore Identity!")
         # Parse and log JWT token parts for debugging
-        token_parts = access_token.split(".")
-        for i, part in enumerate(token_parts[:2]):  # Only decode header and payload, not signature
-            try:
-                # Add padding if needed (JWT Base64 encoding may omit trailing '=' characters)
-                num_padding_chars = BASE64_BLOCK_SIZE - (len(part) % BASE64_BLOCK_SIZE)
-                if num_padding_chars != BASE64_BLOCK_SIZE:
-                    part_for_decode = part + '=' * num_padding_chars
-                else:
-                    part_for_decode = part
-
-                decoded = base64.b64decode(part_for_decode)
-                logger.info(f"\tToken part {i}: {json.loads(decoded.decode())}")
-            except Exception as e:
-                logger.warning(f"\tCould not decode token part {i}: {e}")
+        log_jwt_token_details(access_token)
 
     headers = {
         "Authorization": f"Bearer {access_token}",
