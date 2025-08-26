@@ -65,31 +65,52 @@ uv run python test_identity_agent.py
 
 ## 主要な実装パターン
 
-### Strandsツールでの@requires_access_token使用
+### @requires_access_token による access token の取得
 
 ```python
 from strands import tool
 from bedrock_agentcore.identity.auth import requires_access_token
 
-@tool(name="cost_estimator_tool", description="アーキテクチャ記述からAWSのコストを見積もり")
 @requires_access_token(
     provider_name=OAUTH_PROVIDER,
     scopes=[OAUTH_SCOPE],
     auth_flow="M2M",
     force_authentication=False
 )
-async def cost_estimator_tool(architecture_description, access_token: str) -> str:
-    """アクセストークンはデコレータによって自動的に注入されます"""
+async def _cost_estimator_with_auth(architecture_description: str, access_token: str = None) -> str:
+    """Internal function that handles the actual API call with authentication"""
+    session_id = f"runtime-with-identity-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')}"
+
+    if access_token:
+        logger.info("✅ Successfully load the access token from AgentCore Identity!")
+        # Parse and log JWT token parts for debugging
+        log_jwt_token_details(access_token)
+
     headers = {
         "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-Amzn-Bedrock-AgentCore-Runtime-Session-Id": session_id,
+        "X-Amzn-Trace-Id": session_id,
     }
-    
-    response = requests.post(RUNTIME_URL, headers=headers, data=json.dumps({
-        "prompt": architecture_description
-    }))
-    
+
+    response = requests.post(
+        RUNTIME_URL,
+        headers=headers,
+        data=json.dumps({"prompt": architecture_description})
+    )
+
+    response.raise_for_status()
     return response.text
+
+
+@tool(
+    name="cost_estimator_tool",
+    description="Estimate cost of AWS from architecture description"
+)
+async def cost_estimator_tool(architecture_description: str) -> str:
+    # access_token は @requires_access_token デコレーターにより自動挿入
+    # 内部関数を呼び出す形式にすることで、Agent から access token の引数の存在を隠している
+    return await _cost_estimator_with_auth(architecture_description)
 ```
 
 ### エージェント統合パターン

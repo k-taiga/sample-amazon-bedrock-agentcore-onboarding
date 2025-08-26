@@ -115,7 +115,7 @@ async def cost_estimator_tool(architecture_description: str) -> str:
         Cost estimation result as a string
     """
     # Call the internal function with authentication
-    # The access_token will be automatically injected by the decorator
+    # We call internal function to conceal access token argument from agent
     return await _cost_estimator_with_auth(architecture_description)
 
 

@@ -65,31 +65,53 @@ This will test the complete authentication flow including token acquisition and 
 
 ## Key Implementation Pattern
 
-### Using @requires_access_token with Strands Tools
+### Using @requires_access_token to get the identity
 
 ```python
 from strands import tool
 from bedrock_agentcore.identity.auth import requires_access_token
 
-@tool(name="cost_estimator_tool", description="Estimate cost of AWS from architecture description")
 @requires_access_token(
     provider_name=OAUTH_PROVIDER,
     scopes=[OAUTH_SCOPE],
     auth_flow="M2M",
     force_authentication=False
 )
-async def cost_estimator_tool(architecture_description, access_token: str) -> str:
-    """Access token is automatically injected by the decorator"""
+async def _cost_estimator_with_auth(architecture_description: str, access_token: str = None) -> str:
+    """Internal function that handles the actual API call with authentication"""
+    session_id = f"runtime-with-identity-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')}"
+
+    if access_token:
+        logger.info("✅ Successfully load the access token from AgentCore Identity!")
+        # Parse and log JWT token parts for debugging
+        log_jwt_token_details(access_token)
+
     headers = {
         "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-Amzn-Bedrock-AgentCore-Runtime-Session-Id": session_id,
+        "X-Amzn-Trace-Id": session_id,
     }
-    
-    response = requests.post(RUNTIME_URL, headers=headers, data=json.dumps({
-        "prompt": architecture_description
-    }))
-    
+
+    response = requests.post(
+        RUNTIME_URL,
+        headers=headers,
+        data=json.dumps({"prompt": architecture_description})
+    )
+
+    response.raise_for_status()
     return response.text
+
+
+@tool(
+    name="cost_estimator_tool",
+    description="Estimate cost of AWS from architecture description"
+)
+async def cost_estimator_tool(architecture_description: str) -> str:
+    # Call the internal function with authentication
+    # We call internal function to conceal access token argument from agent
+    return await _cost_estimator_with_auth(architecture_description)
+
 ```
 
 ### Agent Integration Pattern
