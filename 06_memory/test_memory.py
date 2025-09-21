@@ -377,8 +377,8 @@ class AgentWithMemory:
             Generated content from Bedrock
         """
         try:
-            # Use Claude 3 Haiku for fast, cost-effective generation
-            model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+            # Use Claude Sonnet 4 for fast, cost-effective generation
+            model_id = "us.anthropic.claude-sonnet-4-20250514-v1:0"
             
             # Prepare the message
             messages = [
