@@ -19,8 +19,10 @@ import boto3
 from contextlib import contextmanager
 from typing import Generator, AsyncGenerator
 from strands import Agent, tool
+from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
 from strands.handlers.callback_handler import null_callback_handler
+from botocore.config import Config
 from mcp import stdio_client, StdioServerParameters
 from bedrock_agentcore.tools.code_interpreter_client import CodeInterpreter
 from cost_estimator_agent.config import (
@@ -221,7 +223,14 @@ class AWSCostEstimatorAgent:
                 # Create agent with both execute_cost_calculation and MCP pricing tools
                 all_tools = [self.execute_cost_calculation] + pricing_tools
                 agent = Agent(
-                    model=DEFAULT_MODEL,
+                    BedrockModel(
+                        boto_client_config=Config(
+                            read_timeout=900,
+                            connect_timeout=900,
+                            retries=dict(max_attempts=3, mode="adaptive"),
+                        ),
+                        model_id=DEFAULT_MODEL
+                    ),
                     tools=all_tools,
                     system_prompt=SYSTEM_PROMPT
                 )
